@@ -21,6 +21,7 @@ export default function Home() {
   const [password, setPassword] = useState("password123");
   const [fullName, setFullName] = useState("Lead Developer");
   const [authLoading, setAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   const {
     activeWorkspace,
@@ -40,6 +41,21 @@ export default function Home() {
   } = useRelayStore();
 
   const { sendTyping } = useWebSocket();
+
+  // Helper to extract readable error message
+  const parseErrorMessage = (err: any): string => {
+    try {
+      const msg = err.message || "";
+      if (msg.startsWith("{") && msg.endsWith("}")) {
+        const parsed = JSON.parse(msg);
+        if (typeof parsed.detail === "string") return parsed.detail;
+        if (Array.isArray(parsed.detail)) return parsed.detail.map((d: any) => d.msg).join(", ");
+      }
+      return msg;
+    } catch {
+      return err.message || "An error occurred";
+    }
+  };
 
   // Check initial authentication
   useEffect(() => {
@@ -137,6 +153,7 @@ export default function Home() {
   const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthLoading(true);
+    setAuthError(null);
     try {
       if (isRegistering) {
         await api.register(email, password, fullName);
@@ -145,7 +162,7 @@ export default function Home() {
       setIsAuthenticated(true);
       await loadWorkspaceData();
     } catch (err: any) {
-      alert(`Auth failed: ${err.message}`);
+      setAuthError(parseErrorMessage(err));
     } finally {
       setAuthLoading(false);
     }
@@ -154,6 +171,7 @@ export default function Home() {
   // Demo auto-login helper
   const handleDemoLogin = async () => {
     setAuthLoading(true);
+    setAuthError(null);
     try {
       // Try registering demo user or logging in
       try {
@@ -165,7 +183,7 @@ export default function Home() {
       setIsAuthenticated(true);
       await loadWorkspaceData();
     } catch (e: any) {
-      alert(`Demo login error: ${e.message}`);
+      setAuthError(parseErrorMessage(e));
     } finally {
       setAuthLoading(false);
     }
@@ -194,6 +212,12 @@ export default function Home() {
               Realtime AI Agent & Human Collaboration Platform
             </p>
           </div>
+
+          {authError && (
+            <div className="p-3 rounded-lg bg-rose-950/50 border border-rose-800/60 text-xs text-rose-300">
+              {authError}
+            </div>
+          )}
 
           <form onSubmit={handleAuthSubmit} className="space-y-4 text-xs">
             {isRegistering && (

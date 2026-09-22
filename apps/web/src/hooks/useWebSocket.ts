@@ -4,7 +4,13 @@ import { useEffect, useRef } from "react";
 import { api } from "../lib/api";
 import { useRelayStore } from "../stores/useRelayStore";
 
-const WS_BASE = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000/ws";
+function getWsBase(): string {
+  if (typeof window !== "undefined") {
+    const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
+    return `${proto}//${window.location.host}/ws`;
+  }
+  return process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:3000/ws";
+}
 
 export function useWebSocket() {
   const wsRef = useRef<WebSocket | null>(null);
@@ -39,7 +45,7 @@ export function useWebSocket() {
       if (token) params.set("token", token);
       if (activeWorkspace?.id) params.set("workspace_id", activeWorkspace.id);
 
-      const url = `${WS_BASE}?${params.toString()}`;
+      const url = `${getWsBase()}?${params.toString()}`;
       const ws = new WebSocket(url);
       wsRef.current = ws;
 
