@@ -22,34 +22,47 @@ async def websocket_endpoint(
     websocket: WebSocket,
     token: Optional[str] = Query(None),
     agent_key: Optional[str] = Query(None),
+    agent_id: Optional[str] = Query(None),
     workspace_id: Optional[str] = Query(None),
 ):
     connection_id = str(uuid.uuid4())
     user_id: Optional[str] = None
-    agent_id: Optional[str] = None
+    resolved_agent_id: Optional[str] = None
     client_name: str = "Anonymous"
     actor_type: str = "guest"
 
     async with async_session_factory() as db:
-        if token:
-            payload = decode_access_token(token)
-            if payload and "sub" in payload:
-                user_id = payload["sub"]
-                user = await db.get(User, user_id)
-                if user:
-                    client_name = user.full_name
-                    actor_type = "human"
-        elif agent_key:
+        if agent_key:
             hashed = hash_agent_key(agent_key)
             result = await db.execute(select(Agent).where(Agent.api_key_hash == hashed))
             agent = result.scalar_one_or_none()
             if agent:
-                agent_id = agent.id
+                resolved_agent_id = agent.id
                 workspace_id = agent.workspace_id
                 client_name = agent.name
                 actor_type = "agent"
                 agent.status = AgentStatus.ONLINE
                 await db.commit()
+        elif token:
+            payload = decode_access_token(token)
+            if payload and "sub" in payload:
+                user_id = payload["sub"]
+                user = await db.get(User, user_id)
+                if user:
+                    if agent_id:
+                        agent = await db.get(Agent, agent_id)
+                        if agent:
+                            resolved_agent_id = agent.id
+                            workspace_id = agent.workspace_id
+                            client_name = agent.name
+                            actor_type = "agent"
+                            agent.status = AgentStatus.ONLINE
+                            await db.commit()
+                    if not resolved_agent_id:
+                        client_name = user.full_name
+                        actor_type = "human"
+
+    agent_id = resolved_agent_id
 
     # Accept and register
     await manager.connect(

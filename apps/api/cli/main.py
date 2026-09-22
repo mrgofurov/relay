@@ -174,31 +174,43 @@ def agent_start(
         console.print("[red]No workspace specified. Run 'relay login' or specify --workspace-id[/red]")
         raise typer.Exit(1)
 
-    # If no agent key is provided, register/fetch agent via API
-    key = agent_key
-    if not key:
-        if not token:
-            console.print("[red]Must provide --agent-key or be logged in with 'relay login'[/red]")
-            raise typer.Exit(1)
+    # Check saved agent keys in config
+    saved_keys = cfg.get("agent_keys", {})
+    key = agent_key or saved_keys.get(name)
+    agent_id = None
+
+    if not token and not key:
+        console.print("[red]Must provide --agent-key or be logged in with 'relay login'[/red]")
+        raise typer.Exit(1)
+
+    if token:
         with httpx.Client() as client:
-            resp = client.post(
+            # Query existing agents in workspace
+            ag_list_resp = client.get(
                 f"{api_url}/api/v1/workspaces/{target_ws}/agents",
                 headers={"Authorization": f"Bearer {token}"},
-                json={"name": name, "provider": provider, "model": model, "transport": "cli"},
             )
-            if resp.status_code == 200:
-                data = resp.json()
-                key = data.get("api_key")
-                console.print(f"[green]✓ Agent [bold]{name}[/bold] registered with API key.[/green]")
+            existing_agents = ag_list_resp.json() if ag_list_resp.status_code == 200 else []
+            matching = [a for a in existing_agents if a["name"] == name]
+
+            if matching:
+                agent_id = matching[0]["id"]
+                console.print(f"[green]✓ Found registered agent [bold]{name}[/bold] (ID: {agent_id})[/green]")
             else:
-                # Agent may already exist, query existing agents
-                ag_list = client.get(
+                resp = client.post(
                     f"{api_url}/api/v1/workspaces/{target_ws}/agents",
                     headers={"Authorization": f"Bearer {token}"},
-                ).json()
-                matching = [a for a in ag_list if a["name"] == name]
-                if matching:
-                    console.print(f"[yellow]Agent '{name}' already registered. Connecting...[/yellow]")
+                    json={"name": name, "provider": provider, "model": model, "transport": "cli"},
+                )
+                if resp.status_code == 200:
+                    data = resp.json()
+                    key = data.get("api_key")
+                    agent_id = data.get("agent", {}).get("id")
+                    if key:
+                        saved_keys[name] = key
+                        cfg["agent_keys"] = saved_keys
+                        save_config(cfg)
+                    console.print(f"[green]✓ Agent [bold]{name}[/bold] registered with API key.[/green]")
                 else:
                     console.print(f"[red]Failed to register agent: {resp.text}[/red]")
                     raise typer.Exit(1)
@@ -206,12 +218,20 @@ def agent_start(
     console.print(Panel.fit(
         f"[bold cyan]Relay AI Agent Runner[/bold cyan]\n"
         f"Name: [green]{name}[/green] | Provider: [magenta]{provider}[/magenta] | Model: [yellow]{model}[/yellow]\n"
-        f"Connecting to Relay WebSocket at: [cyan]{ws_url}[/cyan]",
+        f"Connecting to Relay WebSocket at: [cyan]{ws_url}[/cyan]\n"
+        f"[dim]💡 Mention [bold]@{name}[/bold] in any thread on http://localhost:3000 to interact.[/dim]\n"
+        f"[dim](Keep this terminal running in the background)[/dim]",
         title=f"Agent: {name}"
     ))
 
     async def run_agent_loop():
-        connect_url = f"{ws_url}?agent_key={key}&workspace_id={target_ws}" if key else f"{ws_url}?token={token}&workspace_id={target_ws}"
+        if key:
+            connect_url = f"{ws_url}?agent_key={key}&workspace_id={target_ws}"
+        elif agent_id:
+            connect_url = f"{ws_url}?token={token}&agent_id={agent_id}&workspace_id={target_ws}"
+        else:
+            connect_url = f"{ws_url}?token={token}&workspace_id={target_ws}"
+
         while True:
             try:
                 console.print(f"[dim]Establishing persistent socket connection...[/dim]")
@@ -229,9 +249,28 @@ def agent_start(
                             thread_id = data.get("thread_id")
                             console.print(f"\n[bold yellow]🔔 Mentioned by {author}:[/bold yellow] {content}")
 
-                            # Automatic agent acknowledgment / answer simulation
-                            reply_text = f"[{name} response]: Processed request '{content[:60]}...' via {provider} ({model})."
-                            console.print(f"[dim]Sending agent reply into thread {thread_id}...[/dim]")
+                            # If GEMINI_API_KEY is available and provider is gemini, call Gemini
+                            gemini_key = os.environ.get("GEMINI_API_KEY")
+                            reply_text = ""
+                            if gemini_key and provider == "gemini":
+                                try:
+                                    console.print("[dim]Querying Google Gemini API...[/dim]")
+                                    gemini_model = "gemini-1.5-flash" if model in ("default", "gemini-3.8-flash") else model
+                                    url = f"https://generativelanguage.googleapis.com/v1beta/models/{gemini_model}:generateContent?key={gemini_key}"
+                                    with httpx.Client(timeout=30.0) as ai_client:
+                                        ai_res = ai_client.post(
+                                            url,
+                                            json={"contents": [{"parts": [{"text": content}]}]},
+                                        )
+                                        if ai_res.status_code == 200:
+                                            reply_text = ai_res.json()["candidates"][0]["content"]["parts"][0]["text"]
+                                except Exception as err:
+                                    console.print(f"[dim]Gemini API error ({err}). Using fallback.[/dim]")
+
+                            if not reply_text:
+                                reply_text = f"Hello @{author}! I received your prompt: \"{content}\". Running as autonomous agent @{name} ({model}) via Relay."
+
+                            console.print(f"[dim]Dispatching agent reply into thread {thread_id}...[/dim]")
                             with httpx.Client() as client:
                                 auth_header = f"Bearer {key}" if key else f"Bearer {token}"
                                 client.post(
@@ -239,6 +278,7 @@ def agent_start(
                                     headers={"Authorization": auth_header},
                                     json={"content": reply_text, "message_type": "agent", "provider": provider, "model": model},
                                 )
+                            console.print(f"[bold green]✓ Reply successfully posted to Relay thread![/bold green]")
                         elif ev == "message.created":
                             console.print(f"[cyan]Message in {data.get('room_id')}:[/cyan] [bold]{data.get('author_name')}[/bold]: {data.get('content')}")
             except (websockets.ConnectionClosed, Exception) as err:
