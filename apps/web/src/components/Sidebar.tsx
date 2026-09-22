@@ -2,19 +2,18 @@
 
 import React, { useState } from "react";
 import {
-  Bot,
   ChevronDown,
   ChevronRight,
   FolderGit2,
   Hash,
   Lock,
+  LogOut,
   Plus,
   Search,
   Settings,
-  Sparkles,
-  Users,
 } from "lucide-react";
 import { useRelayStore } from "../stores/useRelayStore";
+import { api } from "../lib/api";
 import { cn } from "../lib/utils";
 
 interface SidebarProps {
@@ -24,7 +23,6 @@ interface SidebarProps {
 export function Sidebar({ onSelectRoom }: SidebarProps) {
   const {
     activeWorkspace,
-    workspaces,
     projects,
     rooms,
     activeRoom,
@@ -46,86 +44,64 @@ export function Sidebar({ onSelectRoom }: SidebarProps) {
     }));
   };
 
-  const getProviderColor = (provider: string) => {
-    switch (provider) {
-      case "gemini":
-        return "text-sky-400 bg-sky-950/50 border-sky-800/60";
-      case "claude":
-        return "text-amber-400 bg-amber-950/50 border-amber-800/60";
-      case "openai":
-        return "text-emerald-400 bg-emerald-950/50 border-emerald-800/60";
-      case "cursor":
-        return "text-purple-400 bg-purple-950/50 border-purple-800/60";
-      default:
-        return "text-indigo-400 bg-indigo-950/50 border-indigo-800/60";
-    }
-  };
-
   return (
-    <aside className="w-64 flex-shrink-0 bg-[#0e111a] border-r border-[#1a2030] flex flex-col h-screen select-none">
+    <aside className="w-60 flex-shrink-0 bg-[#0f0f12] border-r border-[#232326] flex flex-col h-screen select-none text-xs">
       {/* Workspace Header */}
-      <div className="h-14 px-4 border-b border-[#1a2030] flex items-center justify-between">
+      <div className="h-12 px-3.5 border-b border-[#1a1a1d] flex items-center justify-between">
         <div className="flex items-center space-x-2.5 overflow-hidden">
-          <div className="w-7 h-7 rounded-md bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow-md">
+          <div className="w-6 h-6 rounded-md bg-[#18181c] border border-[#27272a] flex items-center justify-center text-[#fafafa] font-semibold text-xs flex-shrink-0">
             {activeWorkspace?.name?.charAt(0) || "R"}
           </div>
           <div className="truncate">
-            <span className="font-semibold text-sm text-slate-100 block truncate">
-              {activeWorkspace?.name || "Relay Workspace"}
+            <span className="font-semibold text-xs text-[#fafafa] block truncate leading-tight">
+              {activeWorkspace?.name || "Relay"}
             </span>
-            <div className="flex items-center space-x-1.5">
+            <div className="flex items-center space-x-1.5 mt-0.5">
               <span
                 className={cn(
                   "w-1.5 h-1.5 rounded-full",
-                  isConnected ? "bg-emerald-400 animate-pulse" : "bg-rose-500"
+                  isConnected ? "bg-emerald-400" : "bg-neutral-600"
                 )}
               />
-              <span className="text-[11px] text-slate-400">
-                {isConnected ? "Realtime Online" : "Connecting..."}
+              <span className="text-[10px] text-[#71717a] leading-none">
+                {isConnected ? "Connected" : "Offline"}
               </span>
             </div>
           </div>
         </div>
-        <button
-          onClick={() => setSearchModalOpen(true)}
-          className="p-1.5 rounded-md hover:bg-[#1a2030] text-slate-400 hover:text-slate-200 transition-colors"
-          title="Search (Cmd+K)"
-        >
-          <Search className="w-4 h-4" />
-        </button>
       </div>
 
-      {/* Projects & Rooms Navigation */}
+      {/* Navigation Body */}
       <div className="flex-1 overflow-y-auto px-2 py-3 space-y-4">
-        {/* Quick action search bar */}
+        {/* Command / Search Trigger */}
         <button
           onClick={() => setSearchModalOpen(true)}
-          className="w-full flex items-center justify-between px-3 py-1.5 rounded-md bg-[#141824] hover:bg-[#191f2e] border border-[#21283c] text-xs text-slate-400 transition-all shadow-sm"
+          className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-md bg-[#141417] hover:bg-[#18181c] border border-[#232326] text-[#71717a] hover:text-[#a1a1aa] transition-colors"
         >
           <span className="flex items-center gap-2">
-            <Search className="w-3.5 h-3.5 text-slate-500" />
-            <span>Search anything...</span>
+            <Search className="w-3.5 h-3.5" />
+            <span className="text-xs">Search...</span>
           </span>
-          <kbd className="px-1.5 py-0.5 text-[10px] rounded bg-[#0e111a] border border-[#262f46] text-slate-400">
+          <kbd className="px-1 py-0.2 text-[10px] rounded bg-[#18181b] border border-[#27272a] text-[#71717a]">
             ⌘K
           </kbd>
         </button>
 
-        {/* Projects tree */}
+        {/* Projects & Rooms Navigation */}
         <div className="space-y-1">
-          <div className="flex items-center justify-between px-2 text-[11px] font-semibold tracking-wider text-slate-400 uppercase">
+          <div className="flex items-center justify-between px-2 text-[10px] font-medium tracking-wider text-[#71717a] uppercase">
             <span>Projects & Rooms</span>
             <button
               onClick={() => setNewRoomModalOpen(true)}
-              className="p-0.5 hover:text-indigo-400 transition-colors"
+              className="p-0.5 text-[#71717a] hover:text-[#fafafa] transition-colors"
               title="Add Room"
             >
-              <Plus className="w-3.5 h-3.5" />
+              <Plus className="w-3 h-3" />
             </button>
           </div>
 
           {projects.length === 0 ? (
-            <div className="px-3 py-2 text-xs text-slate-500">No projects yet</div>
+            <div className="px-2 py-1.5 text-xs text-[#52525b]">No projects yet</div>
           ) : (
             projects.map((proj) => {
               const isExpanded = expandedProjects[proj.id] !== false;
@@ -135,23 +111,23 @@ export function Sidebar({ onSelectRoom }: SidebarProps) {
                 <div key={proj.id} className="space-y-0.5">
                   <button
                     onClick={() => toggleProject(proj.id)}
-                    className="w-full flex items-center justify-between px-2 py-1.5 rounded-md hover:bg-[#151926] text-xs text-slate-300 font-medium transition-colors"
+                    className="w-full flex items-center justify-between px-2 py-1 rounded-md hover:bg-[#151518] text-[#a1a1aa] hover:text-[#fafafa] transition-colors"
                   >
                     <span className="flex items-center gap-1.5 truncate">
                       {isExpanded ? (
-                        <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                        <ChevronDown className="w-3 h-3 text-[#71717a]" />
                       ) : (
-                        <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                        <ChevronRight className="w-3 h-3 text-[#71717a]" />
                       )}
-                      <span className="truncate">{proj.name}</span>
+                      <span className="truncate font-medium">{proj.name}</span>
                     </span>
-                    <span className="text-[10px] px-1.5 py-0.2 rounded bg-[#1c2233] text-slate-400">
+                    <span className="text-[10px] text-[#52525b] font-mono">
                       {proj.key}
                     </span>
                   </button>
 
                   {isExpanded && (
-                    <div className="ml-3 pl-2 border-l border-[#1a2030] space-y-0.5">
+                    <div className="ml-2 pl-2 border-l border-[#1a1a1d] space-y-0.5 mt-0.5">
                       {projectRooms.map((room) => {
                         const isActive = activeRoom?.id === room.id;
                         const isGitEvents = room.slug === "git-events";
@@ -161,28 +137,28 @@ export function Sidebar({ onSelectRoom }: SidebarProps) {
                             key={room.id}
                             onClick={() => onSelectRoom(room.id)}
                             className={cn(
-                              "w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs transition-all",
+                              "w-full flex items-center justify-between px-2 py-1 rounded-md text-xs transition-colors text-left",
                               isActive
-                                ? "bg-indigo-600/15 text-indigo-300 font-medium border border-indigo-500/20"
-                                : "text-slate-400 hover:text-slate-200 hover:bg-[#151926]"
+                                ? "bg-[#18181c] text-[#fafafa] font-medium"
+                                : "text-[#71717a] hover:text-[#d4d4d8] hover:bg-[#141417]"
                             )}
                           >
-                            <span className="flex items-center gap-2 truncate">
+                            <span className="flex items-center gap-1.5 truncate">
                               {isGitEvents ? (
-                                <FolderGit2 className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+                                <FolderGit2 className="w-3.5 h-3.5 text-[#a1a1aa] flex-shrink-0" />
                               ) : room.is_private ? (
-                                <Lock className="w-3.5 h-3.5 text-slate-500 flex-shrink-0" />
+                                <Lock className="w-3.5 h-3.5 text-[#52525b] flex-shrink-0" />
                               ) : (
-                                <Hash className="w-3.5 h-3.5 text-slate-500 flex-shrink-0" />
+                                <Hash className="w-3.5 h-3.5 text-[#52525b] flex-shrink-0" />
                               )}
                               <span className="truncate">{room.name}</span>
                             </span>
                             {room.auto_discussion && (
                               <span
-                                className="text-[9px] px-1 rounded bg-indigo-950 text-indigo-400 border border-indigo-800/40"
-                                title={`AI Auto Discussion active (max depth ${room.max_reply_depth})`}
+                                className="text-[9px] px-1 py-0.2 rounded bg-[#18181c] text-[#71717a] border border-[#27272a]"
+                                title={`AI Auto Discussion (depth ${room.max_reply_depth})`}
                               >
-                                AI:{room.max_reply_depth}
+                                {room.max_reply_depth}
                               </span>
                             )}
                           </button>
@@ -197,53 +173,45 @@ export function Sidebar({ onSelectRoom }: SidebarProps) {
         </div>
 
         {/* AI Agents Section */}
-        <div className="pt-2 border-t border-[#1a2030] space-y-1.5">
-          <div className="flex items-center justify-between px-2 text-[11px] font-semibold tracking-wider text-slate-400 uppercase">
-            <span className="flex items-center gap-1.5">
-              <Bot className="w-3.5 h-3.5 text-indigo-400" />
-              <span>AI Agents</span>
-            </span>
+        <div className="pt-2 border-t border-[#1a1a1d] space-y-1">
+          <div className="flex items-center justify-between px-2 text-[10px] font-medium tracking-wider text-[#71717a] uppercase">
+            <span>AI Agents</span>
             <button
               onClick={() => setAgentModalOpen(true)}
-              className="p-0.5 hover:text-indigo-400 transition-colors"
+              className="p-0.5 text-[#71717a] hover:text-[#fafafa] transition-colors"
               title="Register Agent"
             >
-              <Plus className="w-3.5 h-3.5" />
+              <Plus className="w-3 h-3" />
             </button>
           </div>
 
-          <div className="space-y-1">
+          <div className="space-y-0.5">
             {agents.length === 0 ? (
-              <div className="px-2 py-2 text-xs text-slate-500 italic">
-                No agents registered yet. Click + to add.
+              <div className="px-2 py-1.5 text-xs text-[#52525b]">
+                No agents registered
               </div>
             ) : (
               agents.map((agent) => (
                 <div
                   key={agent.id}
-                  className="flex items-center justify-between px-2.5 py-1.5 rounded-md hover:bg-[#151926] text-xs transition-colors"
+                  className="flex items-center justify-between px-2 py-1.5 rounded-md hover:bg-[#151518] transition-colors"
                 >
                   <div className="flex items-center gap-2 truncate">
                     <span
                       className={cn(
-                        "w-2 h-2 rounded-full flex-shrink-0",
+                        "w-1.5 h-1.5 rounded-full flex-shrink-0",
                         agent.status === "online"
-                          ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]"
+                          ? "bg-emerald-400"
                           : agent.status === "busy"
-                          ? "bg-amber-400 animate-pulse"
-                          : "bg-slate-600"
+                          ? "bg-amber-400"
+                          : "bg-neutral-600"
                       )}
                     />
-                    <span className="text-slate-300 font-medium truncate">
+                    <span className="text-[#fafafa] font-medium truncate">
                       @{agent.name}
                     </span>
                   </div>
-                  <span
-                    className={cn(
-                      "text-[10px] px-1.5 py-0.5 rounded border capitalize",
-                      getProviderColor(agent.provider)
-                    )}
-                  >
+                  <span className="text-[10px] text-[#71717a] capitalize flex-shrink-0 font-mono">
                     {agent.provider}
                   </span>
                 </div>
@@ -254,23 +222,39 @@ export function Sidebar({ onSelectRoom }: SidebarProps) {
       </div>
 
       {/* User Footer Profile */}
-      <div className="p-3 border-t border-[#1a2030] bg-[#0b0e16] flex items-center justify-between">
+      <div className="p-2.5 border-t border-[#1a1a1d] bg-[#0c0c0e] flex items-center justify-between">
         <div className="flex items-center space-x-2 truncate">
-          <div className="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-medium text-slate-200">
-            Dev
+          <div className="w-6 h-6 rounded-full bg-[#1c1c20] border border-[#27272a] flex items-center justify-center text-[10px] font-medium text-[#fafafa]">
+            {activeWorkspace?.name?.charAt(0) || "U"}
           </div>
           <div className="truncate">
-            <span className="text-xs font-medium text-slate-200 block truncate">Developer</span>
-            <span className="text-[10px] text-slate-500 block truncate">Self-Hosted Node</span>
+            <span className="text-xs font-medium text-[#fafafa] block truncate leading-tight">
+              Developer
+            </span>
+            <span className="text-[10px] text-[#71717a] block truncate leading-none">
+              Active Node
+            </span>
           </div>
         </div>
-        <button
-          onClick={() => alert("Relay v0.1.0 — Production Self-Hosted Platform")}
-          className="p-1.5 rounded-md hover:bg-[#1a2030] text-slate-400 hover:text-slate-200"
-          title="Settings"
-        >
-          <Settings className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-0.5">
+          <button
+            onClick={() => alert("Relay v0.1.0 — Production Developer Platform")}
+            className="p-1 rounded hover:bg-[#18181c] text-[#71717a] hover:text-[#fafafa] transition-colors"
+            title="Settings"
+          >
+            <Settings className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={() => {
+              api.clearToken();
+              window.location.reload();
+            }}
+            className="p-1 rounded hover:bg-[#18181c] text-[#71717a] hover:text-[#fafafa] transition-colors"
+            title="Sign Out"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
     </aside>
   );

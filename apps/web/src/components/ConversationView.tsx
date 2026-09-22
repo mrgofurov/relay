@@ -1,19 +1,12 @@
 "use client";
 
 import React, { useEffect, useRef } from "react";
-import {
-  CheckCircle2,
-  Clock,
-  Layers,
-  MessageSquare,
-  Sparkles,
-  Users,
-} from "lucide-react";
+import { Check, Plus } from "lucide-react";
 import { ComposeBar } from "./ComposeBar";
 import { MessageItem } from "./MessageItem";
 import { useRelayStore } from "../stores/useRelayStore";
 import { api } from "../lib/api";
-import { cn, formatDate, formatTime } from "../lib/utils";
+import { formatDate } from "../lib/utils";
 
 interface ConversationViewProps {
   onSendMessage: (content: string, mentions: string[]) => Promise<void>;
@@ -29,6 +22,7 @@ export function ConversationView({ onSendMessage, onTyping }: ConversationViewPr
     setThreads,
     threads,
     setActiveThread,
+    setNewThreadModalOpen,
   } = useRelayStore();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -48,19 +42,27 @@ export function ConversationView({ onSendMessage, onTyping }: ConversationViewPr
     }
   };
 
-  // Find currently typing users in this thread
   const typingList = Object.values(typingMap).map((t) => t.author_name);
 
   if (!activeThread) {
     return (
-      <main className="flex-1 bg-[#0b0e16] flex flex-col items-center justify-center text-slate-500 p-8 text-center">
-        <div className="w-16 h-16 rounded-2xl bg-[#121622] border border-[#1d2334] flex items-center justify-center text-indigo-400 mb-4 shadow-inner">
-          <MessageSquare className="w-8 h-8 stroke-1" />
+      <main className="flex-1 bg-[#09090b] flex flex-col items-center justify-center text-center p-8 text-xs select-none">
+        <div className="max-w-sm space-y-3">
+          <h3 className="text-sm font-semibold text-[#fafafa]">
+            No thread selected
+          </h3>
+          <p className="text-xs text-[#71717a] leading-relaxed">
+            Select a thread from the list to view the discussion, or start a new thread to collaborate with team members and AI agents.
+          </p>
+          <button
+            onClick={() => setNewThreadModalOpen(true)}
+            disabled={!activeRoom}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#fafafa] hover:bg-white text-[#09090b] text-xs font-medium transition-colors disabled:opacity-40"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>New thread</span>
+          </button>
         </div>
-        <h3 className="text-base font-semibold text-slate-200">No Thread Selected</h3>
-        <p className="text-xs text-slate-400 max-w-sm mt-1.5 leading-relaxed">
-          Select a thread from the center panel, or create a new thread to start real-time multi-agent discussion.
-        </p>
       </main>
     );
   }
@@ -68,27 +70,27 @@ export function ConversationView({ onSendMessage, onTyping }: ConversationViewPr
   const isResolved = activeThread.status === "resolved";
 
   return (
-    <main className="flex-1 bg-[#0b0e16] flex flex-col h-screen overflow-hidden">
+    <main className="flex-1 bg-[#09090b] flex flex-col h-screen overflow-hidden text-xs">
       {/* Thread Header */}
-      <header className="h-14 px-6 border-b border-[#1a2030] bg-[#0e111a]/80 backdrop-blur-md flex items-center justify-between z-10">
+      <header className="h-12 px-5 border-b border-[#232326] bg-[#09090b] flex items-center justify-between z-10 flex-shrink-0">
         <div className="truncate flex-1 mr-4">
           <div className="flex items-center gap-2">
-            <h2 className="text-sm font-semibold text-slate-100 truncate">
+            <h2 className="text-sm font-semibold text-[#fafafa] truncate">
               {activeThread.title}
             </h2>
             {isResolved && (
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-950/70 text-emerald-300 border border-emerald-800/50 flex items-center gap-1 font-medium">
-                <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+              <span className="text-[10px] px-1.5 py-0.2 rounded bg-[#131d16] text-[#4ade80] border border-[#1b3824] flex items-center gap-1 font-medium">
+                <Check className="w-3 h-3" />
                 Resolved
               </span>
             )}
           </div>
-          <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-0.5">
-            <span>Started by <strong className="text-slate-300">{activeThread.author_name}</strong></span>
+          <div className="flex items-center gap-1.5 text-[11px] text-[#71717a] mt-0.5">
+            <span>By <strong className="text-[#a1a1aa] font-medium">{activeThread.author_name}</strong></span>
             <span>•</span>
             <span>{formatDate(activeThread.created_at)}</span>
             <span>•</span>
-            <span className="text-indigo-400">#{activeRoom?.name}</span>
+            <span className="text-[#a1a1aa]">#{activeRoom?.name}</span>
           </div>
         </div>
 
@@ -96,20 +98,20 @@ export function ConversationView({ onSendMessage, onTyping }: ConversationViewPr
           {!isResolved && (
             <button
               onClick={handleResolveThread}
-              className="flex items-center gap-1 px-3 py-1 rounded-md bg-[#161b28] hover:bg-[#1e2538] border border-[#263047] text-xs text-slate-300 font-medium transition-all"
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#151518] hover:bg-[#1c1c20] border border-[#27272a] text-xs text-[#a1a1aa] hover:text-[#fafafa] transition-colors font-medium"
             >
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+              <Check className="w-3.5 h-3.5 text-emerald-400" />
               <span>Mark Resolved</span>
             </button>
           )}
         </div>
       </header>
 
-      {/* Messages Timeline */}
-      <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
+      {/* Messages Timeline — Natural Stream */}
+      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
         {messages.length === 0 ? (
-          <div className="h-48 flex items-center justify-center text-xs text-slate-500 italic">
-            No messages in this thread yet. Send a message to start collaborating!
+          <div className="h-32 flex items-center justify-center text-xs text-[#52525b]">
+            No messages in this thread yet. Send a message to start collaborating.
           </div>
         ) : (
           messages.map((msg) => (
@@ -121,10 +123,10 @@ export function ConversationView({ onSendMessage, onTyping }: ConversationViewPr
           ))
         )}
 
-        {/* Real-time typing indicators */}
+        {/* Realtime typing indicators */}
         {typingList.length > 0 && (
-          <div className="flex items-center gap-2 text-xs text-slate-400 italic px-2 animate-pulse">
-            <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-ping" />
+          <div className="flex items-center gap-1.5 text-[11px] text-[#71717a] px-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#71717a] animate-pulse" />
             <span>
               {typingList.join(", ")} {typingList.length === 1 ? "is" : "are"} typing...
             </span>

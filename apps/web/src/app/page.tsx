@@ -76,12 +76,32 @@ export default function Home() {
         const ws = wsList[0];
         setActiveWorkspace(ws);
 
-        // Load projects
-        const projs = await api.getProjects(ws.id);
+        // Load projects, auto-provision if empty
+        let projs = await api.getProjects(ws.id);
+        if (projs.length === 0) {
+          try {
+            const defProj = await api.createProject(ws.id, "Relay Core", "RELAY", "Default engineering workspace");
+            await api.createRoom(defProj.id, "general", "general", "Team discussion");
+            await api.createRoom(defProj.id, "engineering", "engineering", "Architecture and development");
+            await api.createRoom(defProj.id, "git-events", "git-events", "Automated commit and PR events");
+            projs = await api.getProjects(ws.id);
+          } catch (err) {
+            console.error("Auto-provision error:", err);
+          }
+        }
         setProjects(projs);
 
-        // Load agents
-        const ags = await api.getAgents(ws.id);
+        // Load agents, auto-provision default team agents if empty
+        let ags = await api.getAgents(ws.id);
+        if (ags.length === 0) {
+          try {
+            await api.registerAgent(ws.id, "claude-code", "claude", "claude-3-5-sonnet");
+            await api.registerAgent(ws.id, "gemini-cli", "gemini", "gemini-1.5-pro");
+            ags = await api.getAgents(ws.id);
+          } catch (err) {
+            console.error("Agent seed error:", err);
+          }
+        }
         setAgents(ags);
 
         if (projs.length > 0) {
@@ -191,7 +211,7 @@ export default function Home() {
 
   if (isAuthenticated === null) {
     return (
-      <div className="h-screen w-screen bg-[#0a0d14] flex items-center justify-center text-xs text-slate-400">
+      <div className="h-screen w-screen bg-[#09090b] flex items-center justify-center text-xs text-[#71717a]">
         Loading Relay...
       </div>
     );
@@ -199,115 +219,113 @@ export default function Home() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-[#0e111a] to-[#07090e] flex items-center justify-center p-4">
-        <div className="w-full max-w-md bg-[#111420] border border-[#21283c] rounded-2xl p-8 shadow-2xl space-y-6">
+      <div className="min-h-screen bg-[#09090b] flex flex-col items-center justify-center p-4 selection:bg-[#27272a]">
+        <div className="w-full max-w-[380px] bg-[#0f0f12] border border-[#232326] rounded-xl p-7 space-y-6 shadow-xl">
+          {/* Brand Header */}
           <div className="text-center space-y-2">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 mx-auto flex items-center justify-center text-white font-bold text-xl shadow-lg">
+            <div className="w-8 h-8 rounded-md bg-[#18181b] border border-[#27272a] mx-auto flex items-center justify-center text-white font-medium text-xs tracking-wider">
               R
             </div>
-            <h1 className="text-xl font-bold text-slate-100 tracking-tight">
-              Welcome to Relay
-            </h1>
-            <p className="text-xs text-slate-400">
-              Realtime AI Agent & Human Collaboration Platform
-            </p>
+            <div>
+              <h1 className="text-base font-semibold text-[#fafafa] tracking-tight">
+                {isRegistering ? "Create your workspace" : "Welcome back"}
+              </h1>
+              <p className="text-xs text-[#71717a] mt-0.5">
+                {isRegistering
+                  ? "Start collaborating with AI agents and developers"
+                  : "Sign in to continue to Relay"}
+              </p>
+            </div>
           </div>
 
           {authError && (
-            <div className="p-3 rounded-lg bg-rose-950/50 border border-rose-800/60 text-xs text-rose-300">
+            <div className="p-2.5 rounded-md bg-[#181113] border border-[#441a1f] text-xs text-[#f87171]">
               {authError}
             </div>
           )}
 
-          <form onSubmit={handleAuthSubmit} className="space-y-4 text-xs">
+          <form onSubmit={handleAuthSubmit} className="space-y-3.5 text-xs">
             {isRegistering && (
               <div className="space-y-1.5">
-                <label className="text-slate-300 font-medium">Full Name</label>
-                <div className="flex items-center px-3 py-2 rounded-lg bg-[#151928] border border-[#232b40] focus-within:border-indigo-500">
-                  <User className="w-4 h-4 text-slate-500 mr-2" />
-                  <input
-                    type="text"
-                    required
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    placeholder="Jane Doe"
-                    className="w-full bg-transparent text-slate-200 focus:outline-none"
-                  />
-                </div>
+                <label className="text-[#a1a1aa] font-medium block">Full Name</label>
+                <input
+                  type="text"
+                  required
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="Jane Doe"
+                  className="w-full px-3 py-2 rounded-md bg-[#141417] border border-[#27272a] text-[#fafafa] placeholder-[#52525b] focus:outline-none focus:border-[#52525b] transition-colors"
+                />
               </div>
             )}
 
             <div className="space-y-1.5">
-              <label className="text-slate-300 font-medium">Email Address</label>
-              <div className="flex items-center px-3 py-2 rounded-lg bg-[#151928] border border-[#232b40] focus-within:border-indigo-500">
-                <Mail className="w-4 h-4 text-slate-500 mr-2" />
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@company.com"
-                  className="w-full bg-transparent text-slate-200 focus:outline-none"
-                />
-              </div>
+              <label className="text-[#a1a1aa] font-medium block">Email</label>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="developer@example.com"
+                className="w-full px-3 py-2 rounded-md bg-[#141417] border border-[#27272a] text-[#fafafa] placeholder-[#52525b] focus:outline-none focus:border-[#52525b] transition-colors"
+              />
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-slate-300 font-medium">Password</label>
-              <div className="flex items-center px-3 py-2 rounded-lg bg-[#151928] border border-[#232b40] focus-within:border-indigo-500">
-                <Lock className="w-4 h-4 text-slate-500 mr-2" />
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full bg-transparent text-slate-200 focus:outline-none"
-                />
-              </div>
+              <label className="text-[#a1a1aa] font-medium block">Password</label>
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full px-3 py-2 rounded-md bg-[#141417] border border-[#27272a] text-[#fafafa] placeholder-[#52525b] focus:outline-none focus:border-[#52525b] transition-colors"
+              />
             </div>
 
             <button
               type="submit"
               disabled={authLoading}
-              className="w-full py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-semibold shadow-md transition-all"
+              className="w-full mt-2 py-2 rounded-md bg-[#fafafa] hover:bg-white text-[#09090b] font-medium text-xs transition-colors disabled:opacity-50"
             >
               {authLoading
-                ? "Please wait..."
+                ? "Signing in..."
                 : isRegistering
                 ? "Create Account"
-                : "Sign In to Workspace"}
+                : "Continue"}
             </button>
 
             <button
               type="button"
               onClick={handleDemoLogin}
               disabled={authLoading}
-              className="w-full py-2 rounded-lg bg-[#1a2032] hover:bg-[#20273d] border border-[#2b354e] text-indigo-300 font-medium transition-all"
+              className="w-full py-2 rounded-md bg-[#151518] hover:bg-[#1a1a1e] border border-[#232326] text-[#a1a1aa] hover:text-[#fafafa] font-medium text-xs transition-colors"
             >
-              ⚡ Instant 1-Click Demo Login
+              Demo Workspace Login
             </button>
           </form>
 
-          <div className="text-center text-xs text-slate-500">
+          <div className="text-center text-xs text-[#71717a] pt-1 border-t border-[#1a1a1d]">
             {isRegistering ? (
               <span>
                 Already have an account?{" "}
                 <button
+                  type="button"
                   onClick={() => setIsRegistering(false)}
-                  className="text-indigo-400 hover:underline font-medium"
+                  className="text-[#fafafa] hover:underline font-medium"
                 >
-                  Sign In
+                  Sign in
                 </button>
               </span>
             ) : (
               <span>
-                Need an account?{" "}
+                Don&apos;t have an account?{" "}
                 <button
+                  type="button"
                   onClick={() => setIsRegistering(true)}
-                  className="text-indigo-400 hover:underline font-medium"
+                  className="text-[#fafafa] hover:underline font-medium"
                 >
-                  Create one now
+                  Create account
                 </button>
               </span>
             )}
@@ -318,7 +336,7 @@ export default function Home() {
   }
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-[#0b0e14]">
+    <div className="flex h-screen w-screen overflow-hidden bg-[#09090b] text-[#fafafa]">
       {/* Column 1: Projects & Rooms Navigation */}
       <Sidebar onSelectRoom={handleSelectRoom} />
 

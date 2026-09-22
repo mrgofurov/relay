@@ -45,59 +45,56 @@ export function NewThreadModal() {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-[#111420] border border-[#21283c] rounded-xl w-full max-w-md p-6 shadow-2xl space-y-4">
-        <div className="flex items-center justify-between border-b border-[#1f2638] pb-3">
-          <div className="flex items-center gap-2">
-            <MessageSquare className="w-4 h-4 text-indigo-400" />
-            <h3 className="text-sm font-semibold text-slate-100">
-              Start New Thread in #{activeRoom.name}
-            </h3>
-          </div>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 text-xs">
+      <div className="bg-[#0f0f12] border border-[#232326] rounded-xl w-full max-w-md p-5 shadow-2xl space-y-4">
+        <div className="flex items-center justify-between border-b border-[#1a1a1d] pb-2.5">
+          <h3 className="text-xs font-semibold text-[#fafafa]">
+            New Thread in #{activeRoom.name}
+          </h3>
           <button
             onClick={() => setNewThreadModalOpen(false)}
-            className="text-slate-400 hover:text-slate-200"
+            className="text-[#71717a] hover:text-[#fafafa] transition-colors"
           >
-            <X className="w-4 h-4" />
+            <X className="w-3.5 h-3.5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4 text-xs">
-          <div className="space-y-1.5">
-            <label className="text-slate-300 font-medium">Thread Title / Topic</label>
+        <form onSubmit={handleSubmit} className="space-y-3 text-xs">
+          <div className="space-y-1">
+            <label className="text-[#a1a1aa] font-medium">Topic / Title</label>
             <input
               type="text"
               required
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g., Product DTO v2 Schema Design"
-              className="w-full px-3 py-2 rounded-lg bg-[#151928] border border-[#232b40] text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+              placeholder="e.g. Architecture RFC: API Schema v2"
+              className="w-full px-3 py-2 rounded-md bg-[#141417] border border-[#27272a] text-[#fafafa] placeholder-[#52525b] focus:outline-none focus:border-[#52525b] transition-colors"
             />
           </div>
 
-          <div className="space-y-1.5">
-            <label className="text-slate-300 font-medium">Initial Message (Optional)</label>
+          <div className="space-y-1">
+            <label className="text-[#a1a1aa] font-medium">Initial Context (Optional)</label>
             <textarea
               rows={3}
               value={initialMessage}
               onChange={(e) => setInitialMessage(e.target.value)}
-              placeholder="Introduce the task or mention agents (e.g. '@gemini-cli can you review...')"
-              className="w-full px-3 py-2 rounded-lg bg-[#151928] border border-[#232b40] text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 resize-none leading-relaxed"
+              placeholder="Describe topic or mention agents (@gemini, @claude)..."
+              className="w-full px-3 py-2 rounded-md bg-[#141417] border border-[#27272a] text-[#fafafa] placeholder-[#52525b] focus:outline-none focus:border-[#52525b] resize-none leading-relaxed transition-colors"
             />
           </div>
 
-          <div className="flex justify-end gap-2 pt-2 border-t border-[#1f2638]">
+          <div className="flex justify-end gap-2 pt-2 border-t border-[#1a1a1d]">
             <button
               type="button"
               onClick={() => setNewThreadModalOpen(false)}
-              className="px-3 py-1.5 rounded-md text-xs text-slate-400 hover:text-slate-200"
+              className="px-3 py-1.5 rounded-md text-xs text-[#71717a] hover:text-[#fafafa] transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={submitting || !title.trim()}
-              className="px-4 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-500 text-xs text-white font-medium shadow transition-all"
+              className="px-3.5 py-1.5 rounded-md bg-[#fafafa] hover:bg-white text-xs text-[#09090b] font-medium transition-colors disabled:opacity-40"
             >
               {submitting ? "Creating..." : "Create Thread"}
             </button>

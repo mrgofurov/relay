@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Bot, FileText, Hash, MessageSquare, Search, X } from "lucide-react";
+import { Search } from "lucide-react";
 import { useRelayStore } from "../stores/useRelayStore";
 import { api } from "../lib/api";
 
@@ -48,53 +48,40 @@ export function SearchModal() {
       } finally {
         setLoading(false);
       }
-    }, 250);
+    }, 200);
 
     return () => clearTimeout(timer);
   }, [query, activeWorkspace]);
 
   if (!isSearchModalOpen) return null;
 
-  const getItemIcon = (type: string) => {
-    switch (type) {
-      case "message":
-        return <MessageSquare className="w-4 h-4 text-indigo-400" />;
-      case "thread":
-        return <FileText className="w-4 h-4 text-sky-400" />;
-      case "room":
-        return <Hash className="w-4 h-4 text-amber-400" />;
-      case "agent":
-        return <Bot className="w-4 h-4 text-purple-400" />;
-      default:
-        return <Search className="w-4 h-4 text-slate-400" />;
-    }
-  };
-
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-start justify-center pt-20 p-4">
-      <div className="bg-[#111420] border border-[#21283c] rounded-xl w-full max-w-xl shadow-2xl overflow-hidden flex flex-col max-h-[70vh]">
-        <div className="p-3 border-b border-[#1f2638] flex items-center gap-3">
-          <Search className="w-5 h-5 text-slate-400 flex-shrink-0" />
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-start justify-center pt-24 p-4 text-xs">
+      <div className="bg-[#0f0f12] border border-[#232326] rounded-xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[60vh]">
+        {/* Search Input */}
+        <div className="px-3.5 py-2.5 border-b border-[#1a1a1d] flex items-center gap-2.5">
+          <Search className="w-4 h-4 text-[#71717a] flex-shrink-0" />
           <input
             autoFocus
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search messages, threads, rooms, agents, code..."
-            className="w-full bg-transparent text-sm text-slate-100 placeholder-slate-500 focus:outline-none"
+            placeholder="Search threads, messages, rooms, agents..."
+            className="w-full bg-transparent text-xs text-[#fafafa] placeholder-[#52525b] focus:outline-none"
           />
-          <kbd className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">
+          <kbd className="text-[10px] px-1.5 py-0.2 rounded bg-[#18181b] text-[#71717a] border border-[#27272a]">
             ESC
           </kbd>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-2 divide-y divide-[#1a2030]">
+        {/* Results Stream */}
+        <div className="flex-1 overflow-y-auto p-1.5 space-y-0.5">
           {loading && (
-            <div className="p-4 text-center text-xs text-slate-400">Searching...</div>
+            <div className="p-4 text-center text-xs text-[#71717a]">Searching...</div>
           )}
 
           {!loading && query && results.length === 0 && (
-            <div className="p-4 text-center text-xs text-slate-500">
+            <div className="p-4 text-center text-xs text-[#52525b]">
               No results found for &ldquo;{query}&rdquo;
             </div>
           )}
@@ -108,20 +95,21 @@ export function SearchModal() {
                   if (item.thread_id) setActiveThread({ id: item.thread_id } as any);
                   setSearchModalOpen(false);
                 }}
-                className="p-3 rounded-lg hover:bg-[#161a28] cursor-pointer transition-colors space-y-1"
+                className="p-2 rounded-md hover:bg-[#18181c] cursor-pointer transition-colors space-y-0.5 text-left"
               >
-                <div className="flex items-center gap-2">
-                  {getItemIcon(item.type)}
-                  <span className="text-xs font-semibold text-slate-200 truncate">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-[#fafafa] truncate">
                     {item.title}
                   </span>
-                  <span className="text-[10px] uppercase font-mono px-1 rounded bg-[#1c2234] text-slate-400 ml-auto">
+                  <span className="text-[10px] uppercase font-mono px-1 rounded bg-[#141417] text-[#71717a]">
                     {item.type}
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-400 line-clamp-2 pl-6">
-                  {item.snippet}
-                </p>
+                {item.snippet && (
+                  <p className="text-[11px] text-[#71717a] line-clamp-1">
+                    {item.snippet}
+                  </p>
+                )}
               </div>
             ))}
         </div>

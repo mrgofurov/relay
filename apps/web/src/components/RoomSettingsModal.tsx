@@ -39,50 +39,47 @@ export function RoomSettingsModal() {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-[#111420] border border-[#21283c] rounded-xl w-full max-w-md p-6 shadow-2xl space-y-5">
-        <div className="flex items-center justify-between border-b border-[#1f2638] pb-3">
-          <div className="flex items-center gap-2">
-            <Sliders className="w-4 h-4 text-indigo-400" />
-            <h3 className="text-sm font-semibold text-slate-100">
-              Room Settings: #{activeRoom.name}
-            </h3>
-          </div>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 text-xs">
+      <div className="bg-[#0f0f12] border border-[#232326] rounded-xl w-full max-w-md p-5 shadow-2xl space-y-4">
+        <div className="flex items-center justify-between border-b border-[#1a1a1d] pb-2.5">
+          <h3 className="text-xs font-semibold text-[#fafafa]">
+            Room Settings: #{activeRoom.name}
+          </h3>
           <button
             onClick={() => setSettingsOpen(false)}
-            className="text-slate-400 hover:text-slate-200"
+            className="text-[#71717a] hover:text-[#fafafa] transition-colors"
           >
-            <X className="w-4 h-4" />
+            <X className="w-3.5 h-3.5" />
           </button>
         </div>
 
-        <div className="space-y-4 text-xs">
+        <div className="space-y-3 text-xs">
           {/* Auto Discussion Toggle */}
-          <div className="flex items-center justify-between p-3 rounded-lg bg-[#161a28] border border-[#21283c]">
+          <div className="flex items-center justify-between p-3 rounded-md bg-[#141417] border border-[#232326]">
             <div>
-              <span className="font-semibold text-slate-200 block">Auto Discussion</span>
-              <span className="text-[11px] text-slate-400">
-                Allow AI agents to autonomously reply to each other inside threads
+              <span className="font-medium text-[#fafafa] block">Autonomous Discussion</span>
+              <span className="text-[11px] text-[#71717a]">
+                Allow AI agents to autonomously reply to each other in threads
               </span>
             </div>
             <input
               type="checkbox"
               checked={autoDiscussion}
               onChange={(e) => setAutoDiscussion(e.target.checked)}
-              className="w-4 h-4 rounded text-indigo-600 bg-slate-800 border-slate-700 cursor-pointer"
+              className="w-4 h-4 rounded text-black bg-[#1f1f23] border-[#3f3f46] accent-white cursor-pointer"
             />
           </div>
 
           {/* Max Reply Depth Slider */}
-          <div className="p-3 rounded-lg bg-[#161a28] border border-[#21283c] space-y-2">
+          <div className="p-3 rounded-md bg-[#141417] border border-[#232326] space-y-2">
             <div className="flex justify-between items-center">
-              <span className="font-semibold text-slate-200">Max Reply Depth</span>
-              <span className="px-2 py-0.5 rounded bg-indigo-950 text-indigo-300 font-mono font-bold text-xs border border-indigo-800/40">
+              <span className="font-medium text-[#fafafa]">Max Reply Depth</span>
+              <span className="px-1.5 py-0.2 rounded bg-[#1c1c20] text-[#fafafa] font-mono text-xs border border-[#2e2e33]">
                 {maxDepth} replies
               </span>
             </div>
-            <p className="text-[11px] text-slate-400">
-              Guards against infinite loops. Once reached, automated replies halt until a human approves or responds.
+            <p className="text-[11px] text-[#71717a]">
+              Guards against runaway token loops. Automated replies stop once reached.
             </p>
             <input
               type="range"
@@ -90,9 +87,9 @@ export function RoomSettingsModal() {
               max="10"
               value={maxDepth}
               onChange={(e) => setMaxDepth(Number(e.target.value))}
-              className="w-full accent-indigo-500 cursor-pointer"
+              className="w-full accent-white cursor-pointer"
             />
-            <div className="flex justify-between text-[10px] text-slate-500 font-mono">
+            <div className="flex justify-between text-[10px] text-[#52525b] font-mono">
               <span>1</span>
               <span>Default: 3</span>
               <span>10</span>
@@ -100,10 +97,10 @@ export function RoomSettingsModal() {
           </div>
 
           {/* Human Approval Toggle */}
-          <div className="flex items-center justify-between p-3 rounded-lg bg-[#161a28] border border-[#21283c]">
+          <div className="flex items-center justify-between p-3 rounded-md bg-[#141417] border border-[#232326]">
             <div>
-              <span className="font-semibold text-slate-200 block">Human Approval</span>
-              <span className="text-[11px] text-slate-400">
+              <span className="font-medium text-[#fafafa]">Human Approval Gate</span>
+              <span className="text-[11px] text-[#71717a]">
                 Require human sign-off before subsequent agent reactions trigger
               </span>
             </div>
@@ -111,22 +108,22 @@ export function RoomSettingsModal() {
               type="checkbox"
               checked={humanApproval}
               onChange={(e) => setHumanApproval(e.target.checked)}
-              className="w-4 h-4 rounded text-indigo-600 bg-slate-800 border-slate-700 cursor-pointer"
+              className="w-4 h-4 rounded text-black bg-[#1f1f23] border-[#3f3f46] accent-white cursor-pointer"
             />
           </div>
         </div>
 
-        <div className="flex justify-end gap-2 pt-2 border-t border-[#1f2638]">
+        <div className="flex justify-end gap-2 pt-2 border-t border-[#1a1a1d]">
           <button
             onClick={() => setSettingsOpen(false)}
-            className="px-3 py-1.5 rounded-md text-xs text-slate-400 hover:text-slate-200"
+            className="px-3 py-1.5 rounded-md text-xs text-[#71717a] hover:text-[#fafafa] transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
             disabled={saving}
-            className="px-4 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-500 text-xs text-white font-medium shadow transition-all"
+            className="px-3.5 py-1.5 rounded-md bg-[#fafafa] hover:bg-white text-xs text-[#09090b] font-medium transition-colors disabled:opacity-40"
           >
             {saving ? "Saving..." : "Save Settings"}
           </button>
