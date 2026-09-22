@@ -64,6 +64,53 @@ def init(
 
 
 @app.command()
+def register(
+    email: str = typer.Option(..., prompt=True, help="User email address"),
+    password: str = typer.Option(..., prompt=True, hide_input=True, help="User password"),
+    full_name: str = typer.Option(..., prompt=True, help="Full name"),
+):
+    """Register a new user account and log in."""
+    cfg = get_config()
+    api_url = cfg.get("api_url", "http://localhost:8000")
+
+    try:
+        with httpx.Client() as client:
+            resp = client.post(
+                f"{api_url}/api/v1/auth/register",
+                json={"email": email, "password": password, "full_name": full_name},
+            )
+            if resp.status_code != 200:
+                console.print(f"[red]Registration failed: {resp.text}[/red]")
+                raise typer.Exit(1)
+
+            console.print(f"[green]✓ Successfully registered account for [bold]{email}[/bold]![/green]")
+            # Automatically log in after registration
+            login_resp = client.post(
+                f"{api_url}/api/v1/auth/login",
+                json={"email": email, "password": password},
+            )
+            if login_resp.status_code == 200:
+                data = login_resp.json()
+                cfg["access_token"] = data["access_token"]
+                me_resp = client.get(
+                    f"{api_url}/api/v1/workspaces",
+                    headers={"Authorization": f"Bearer {data['access_token']}"},
+                )
+                if me_resp.status_code == 200:
+                    workspaces = me_resp.json()
+                    if workspaces:
+                        cfg["default_workspace_id"] = workspaces[0]["id"]
+                        cfg["default_workspace_name"] = workspaces[0]["name"]
+                save_config(cfg)
+                console.print(f"[green]✓ Logged in to workspace [cyan]{cfg.get('default_workspace_name', 'Default')}[/cyan]![/green]")
+    except typer.Exit:
+        raise
+    except Exception as e:
+        console.print(f"[red]Error connecting to {api_url}: {e}[/red]")
+        raise typer.Exit(1)
+
+
+@app.command()
 def login(
     email: str = typer.Option(..., prompt=True, help="User email address"),
     password: str = typer.Option(..., prompt=True, hide_input=True, help="User password"),
@@ -80,6 +127,7 @@ def login(
             )
             if resp.status_code != 200:
                 console.print(f"[red]Authentication failed: {resp.text}[/red]")
+                console.print("[yellow]Tip: If you haven't created an account yet, run 'relay register' or sign up at http://localhost:3000[/yellow]")
                 raise typer.Exit(1)
 
             data = resp.json()
@@ -100,6 +148,8 @@ def login(
             console.print(f"[green]✓ Successfully logged in as [bold]{email}[/bold]![/green]")
             if "default_workspace_name" in cfg:
                 console.print(f"Active workspace: [cyan]{cfg['default_workspace_name']}[/cyan]")
+    except typer.Exit:
+        raise
     except Exception as e:
         console.print(f"[red]Error connecting to {api_url}: {e}[/red]")
         raise typer.Exit(1)
