@@ -30,6 +30,9 @@ dependencies = [
 [project.scripts]
 relay = "cli.main:app"
 
+[tool.setuptools.packages.find]
+include = ["app*", "cli*"]
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
