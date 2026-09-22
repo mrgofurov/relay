@@ -32,14 +32,14 @@ export function ThreadList({ onSelectThread }: ThreadListProps) {
   });
 
   return (
-    <section className="w-72 flex-shrink-0 bg-[#0c0c0e] border-r border-[#232326] flex flex-col h-screen select-none text-xs">
+    <section className="w-72 flex-shrink-0 bg-relay-surface border-r border-relay-border flex flex-col h-screen select-none text-xs">
       {/* Room Header */}
-      <div className="h-12 px-3.5 border-b border-[#1a1a1d] flex items-center justify-between">
+      <div className="h-12 px-3.5 border-b border-relay-subtle flex items-center justify-between">
         <div className="truncate pr-2">
-          <span className="font-semibold text-xs text-[#fafafa] truncate block">
+          <span className="font-semibold text-xs text-relay-text truncate block">
             #{activeRoom?.name || "Select Room"}
           </span>
-          <span className="text-[10px] text-[#71717a] block truncate leading-tight">
+          <span className="text-[10px] text-relay-muted block truncate leading-tight">
             {activeRoom?.description || "Thread channel"}
           </span>
         </div>
@@ -48,7 +48,7 @@ export function ThreadList({ onSelectThread }: ThreadListProps) {
           {activeRoom && (
             <button
               onClick={() => setSettingsOpen(true)}
-              className="p-1 rounded hover:bg-[#18181c] text-[#71717a] hover:text-[#fafafa] transition-colors"
+              className="p-1 rounded hover:bg-relay-hover text-relay-muted hover:text-relay-text transition-colors"
               title="Room AI Settings"
             >
               <Settings2 className="w-3.5 h-3.5" />
@@ -57,7 +57,7 @@ export function ThreadList({ onSelectThread }: ThreadListProps) {
           <button
             onClick={() => setNewThreadModalOpen(true)}
             disabled={!activeRoom}
-            className="flex items-center gap-1 px-2 py-1 rounded bg-[#fafafa] hover:bg-white disabled:opacity-40 text-[11px] text-[#09090b] font-medium transition-colors"
+            className="flex items-center gap-1 px-2 py-1 rounded bg-relay-text hover:opacity-90 disabled:opacity-40 text-[11px] text-relay-canvas font-medium transition-colors shadow-sm"
           >
             <Plus className="w-3 h-3" />
             <span>New</span>
@@ -66,27 +66,27 @@ export function ThreadList({ onSelectThread }: ThreadListProps) {
       </div>
 
       {/* Mode Sub-bar & Understated Segmented Filter */}
-      <div className="px-3 py-1.5 bg-[#0e0e11] border-b border-[#1a1a1d] flex items-center justify-between text-[11px]">
-        <div className="text-[10px] text-[#71717a] flex items-center gap-1.5">
+      <div className="px-3 py-1.5 bg-relay-elevated border-b border-relay-subtle flex items-center justify-between text-[11px]">
+        <div className="text-[10px] text-relay-muted flex items-center gap-1.5">
           <span>Mode:</span>
           {activeRoom?.auto_discussion ? (
-            <span className="text-[#a1a1aa] font-mono">
+            <span className="text-relay-secondary font-mono">
               Auto ({activeRoom.max_reply_depth})
             </span>
           ) : (
-            <span className="text-[#71717a]">Manual</span>
+            <span className="text-relay-muted">Manual</span>
           )}
         </div>
 
         {/* Minimal Text-Based Filter Tabs */}
-        <div className="flex items-center gap-0.5 bg-[#141417] p-0.5 rounded border border-[#232326]">
+        <div className="flex items-center gap-0.5 bg-relay-canvas p-0.5 rounded border border-relay-border">
           <button
             onClick={() => setFilter("all")}
             className={cn(
               "px-1.5 py-0.5 text-[10px] rounded transition-colors",
               filter === "all"
-                ? "bg-[#1c1c20] text-[#fafafa] font-medium"
-                : "text-[#71717a] hover:text-[#a1a1aa]"
+                ? "bg-relay-surface text-relay-text font-medium shadow-sm"
+                : "text-relay-muted hover:text-relay-secondary"
             )}
           >
             All
@@ -96,8 +96,8 @@ export function ThreadList({ onSelectThread }: ThreadListProps) {
             className={cn(
               "px-1.5 py-0.5 text-[10px] rounded transition-colors",
               filter === "open"
-                ? "bg-[#1c1c20] text-[#fafafa] font-medium"
-                : "text-[#71717a] hover:text-[#a1a1aa]"
+                ? "bg-relay-surface text-relay-text font-medium shadow-sm"
+                : "text-relay-muted hover:text-relay-secondary"
             )}
           >
             Open
@@ -107,8 +107,8 @@ export function ThreadList({ onSelectThread }: ThreadListProps) {
             className={cn(
               "px-1.5 py-0.5 text-[10px] rounded transition-colors",
               filter === "resolved"
-                ? "bg-[#1c1c20] text-[#fafafa] font-medium"
-                : "text-[#71717a] hover:text-[#a1a1aa]"
+                ? "bg-relay-surface text-relay-text font-medium shadow-sm"
+                : "text-relay-muted hover:text-relay-secondary"
             )}
           >
             Done
@@ -117,17 +117,17 @@ export function ThreadList({ onSelectThread }: ThreadListProps) {
       </div>
 
       {/* Threads List */}
-      <div className="flex-1 overflow-y-auto divide-y divide-[#1a1a1d]">
+      <div className="flex-1 overflow-y-auto divide-y divide-relay-subtle">
         {!activeRoom ? (
-          <div className="h-40 flex items-center justify-center text-xs text-[#52525b] text-center px-4">
+          <div className="h-40 flex items-center justify-center text-xs text-relay-muted text-center px-4">
             Select a room to view threads
           </div>
         ) : filteredThreads.length === 0 ? (
-          <div className="h-48 flex flex-col items-center justify-center text-xs text-[#52525b] text-center px-4">
+          <div className="h-48 flex flex-col items-center justify-center text-xs text-relay-muted text-center px-4">
             <p>No threads found</p>
             <button
               onClick={() => setNewThreadModalOpen(true)}
-              className="mt-1.5 text-[#fafafa] hover:underline text-xs"
+              className="mt-1.5 text-relay-text hover:underline text-xs"
             >
               Start a thread
             </button>
@@ -144,25 +144,25 @@ export function ThreadList({ onSelectThread }: ThreadListProps) {
                 className={cn(
                   "px-3 py-2.5 cursor-pointer transition-colors text-left",
                   isSelected
-                    ? "bg-[#18181c] border-l-2 border-white pl-2.5"
-                    : "hover:bg-[#141417]"
+                    ? "bg-relay-elevated border-l-2 border-relay-text pl-2.5"
+                    : "hover:bg-relay-hover"
                 )}
               >
                 <div className="flex items-start justify-between gap-1.5">
                   <h4
                     className={cn(
                       "text-xs line-clamp-1 leading-snug",
-                      isSelected ? "font-medium text-[#fafafa]" : "text-[#d4d4d8]"
+                      isSelected ? "font-medium text-relay-text" : "text-relay-secondary"
                     )}
                   >
                     {thread.title}
                   </h4>
                   {isResolved && (
-                    <Check className="w-3 h-3 text-emerald-400 flex-shrink-0 mt-0.5" />
+                    <Check className="w-3 h-3 text-emerald-500 flex-shrink-0 mt-0.5" />
                   )}
                 </div>
 
-                <div className="mt-1.5 flex items-center justify-between text-[10px] text-[#71717a]">
+                <div className="mt-1.5 flex items-center justify-between text-[10px] text-relay-muted">
                   <span className="truncate">{thread.author_name}</span>
 
                   <div className="flex items-center gap-2 flex-shrink-0">

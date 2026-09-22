@@ -69,20 +69,20 @@ export function ComposeBar({ onSendMessage, onTyping }: ComposeBarProps) {
   };
 
   return (
-    <div className="p-3 bg-[#09090b] border-t border-[#232326] relative text-xs">
+    <div className="p-3 bg-relay-canvas border-t border-relay-border relative text-xs">
       {/* Mention autocomplete popup */}
       {showMentions && (
-        <div className="absolute bottom-full mb-2 left-3 w-64 bg-[#0f0f12] border border-[#232326] rounded-md shadow-2xl p-1 z-20 space-y-0.5">
-          <div className="px-2 py-1 text-[10px] font-medium text-[#71717a] uppercase tracking-wider">
+        <div className="absolute bottom-full mb-2 left-3 w-64 bg-relay-surface border border-relay-border rounded-md shadow-2xl p-1 z-20 space-y-0.5">
+          <div className="px-2 py-1 text-[10px] font-medium text-relay-muted uppercase tracking-wider">
             Mention
           </div>
           <div className="max-h-40 overflow-y-auto space-y-0.5">
             <button
               type="button"
               onClick={() => handleInsertMention("everyone")}
-              className="w-full flex items-center gap-2 px-2 py-1 rounded hover:bg-[#18181c] text-xs text-[#fafafa] transition-colors text-left"
+              className="w-full flex items-center gap-2 px-2 py-1 rounded hover:bg-relay-hover text-xs text-relay-text transition-colors text-left"
             >
-              <span className="font-mono text-[#a1a1aa]">@everyone</span>
+              <span className="font-mono text-relay-secondary">@everyone</span>
             </button>
 
             {agents.map((ag) => (
@@ -90,10 +90,10 @@ export function ComposeBar({ onSendMessage, onTyping }: ComposeBarProps) {
                 key={ag.id}
                 type="button"
                 onClick={() => handleInsertMention(ag.name)}
-                className="w-full flex items-center justify-between px-2 py-1 rounded hover:bg-[#18181c] text-xs text-[#fafafa] transition-colors text-left"
+                className="w-full flex items-center justify-between px-2 py-1 rounded hover:bg-relay-hover text-xs text-relay-text transition-colors text-left"
               >
-                <span className="font-mono text-[#fafafa]">@{ag.name}</span>
-                <span className="text-[10px] text-[#71717a] capitalize">{ag.provider}</span>
+                <span className="font-mono text-relay-text">@{ag.name}</span>
+                <span className="text-[10px] text-relay-muted capitalize">{ag.provider}</span>
               </button>
             ))}
           </div>
@@ -102,25 +102,25 @@ export function ComposeBar({ onSendMessage, onTyping }: ComposeBarProps) {
 
       {/* Quick mention action chips */}
       <div className="flex items-center gap-1.5 mb-2 overflow-x-auto pb-0.5 text-[11px]">
-        <span className="text-[10px] text-[#71717a]">Mention:</span>
+        <span className="text-[10px] text-relay-muted">Mention:</span>
         <button
           type="button"
           onClick={() => handleInsertMention("gemini")}
-          className="px-1.5 py-0.2 rounded bg-[#141417] hover:bg-[#1c1c20] text-[#a1a1aa] hover:text-[#fafafa] border border-[#232326] text-[10px] font-mono transition-colors"
+          className="px-1.5 py-0.2 rounded bg-relay-surface hover:bg-relay-hover text-relay-secondary hover:text-relay-text border border-relay-border text-[10px] font-mono transition-colors"
         >
           @gemini
         </button>
         <button
           type="button"
           onClick={() => handleInsertMention("claude")}
-          className="px-1.5 py-0.2 rounded bg-[#141417] hover:bg-[#1c1c20] text-[#a1a1aa] hover:text-[#fafafa] border border-[#232326] text-[10px] font-mono transition-colors"
+          className="px-1.5 py-0.2 rounded bg-relay-surface hover:bg-relay-hover text-relay-secondary hover:text-relay-text border border-relay-border text-[10px] font-mono transition-colors"
         >
           @claude
         </button>
         <button
           type="button"
           onClick={() => handleInsertMention("gpt")}
-          className="px-1.5 py-0.2 rounded bg-[#141417] hover:bg-[#1c1c20] text-[#a1a1aa] hover:text-[#fafafa] border border-[#232326] text-[10px] font-mono transition-colors"
+          className="px-1.5 py-0.2 rounded bg-relay-surface hover:bg-relay-hover text-relay-secondary hover:text-relay-text border border-relay-border text-[10px] font-mono transition-colors"
         >
           @gpt
         </button>
@@ -128,28 +128,28 @@ export function ComposeBar({ onSendMessage, onTyping }: ComposeBarProps) {
 
       {/* Textarea Box */}
       <form onSubmit={handleSubmit} className="flex items-end gap-2">
-        <div className="flex-1 bg-[#0f0f12] border border-[#232326] focus-within:border-[#3f3f46] rounded-md p-2 transition-colors">
+        <div className="flex-1 bg-relay-surface border border-relay-border focus-within:border-relay-secondary rounded-md p-2 transition-colors">
           <textarea
             value={content}
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
             rows={2}
             placeholder="Reply in thread... type '@' to mention agent"
-            className="w-full bg-transparent border-0 resize-none text-xs text-[#fafafa] placeholder-[#52525b] focus:outline-none leading-relaxed"
+            className="w-full bg-transparent border-0 resize-none text-xs text-relay-text placeholder-relay-muted focus:outline-none leading-relaxed"
           />
         </div>
 
         <button
           type="submit"
           disabled={!content.trim() || isSubmitting}
-          className="h-9 px-3 rounded-md bg-[#fafafa] hover:bg-white disabled:opacity-40 text-[#09090b] text-xs font-medium flex items-center justify-center gap-1 shadow-sm transition-colors flex-shrink-0"
+          className="h-9 px-3 rounded-md bg-relay-text hover:opacity-90 disabled:opacity-40 text-relay-canvas text-xs font-medium flex items-center justify-center gap-1 shadow-sm transition-colors flex-shrink-0"
           title="Send (Enter)"
         >
           <span>Send</span>
           <ArrowUp className="w-3.5 h-3.5" />
         </button>
       </form>
-      <div className="flex justify-between items-center text-[10px] text-[#52525b] mt-1.5 px-0.5">
+      <div className="flex justify-between items-center text-[10px] text-relay-muted mt-1.5 px-0.5">
         <span>Press Enter to send, Shift+Enter for new line</span>
         <span>Thread isolation active</span>
       </div>

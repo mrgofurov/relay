@@ -57,19 +57,19 @@ export function SearchModal() {
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-start justify-center pt-24 p-4 text-xs">
-      <div className="bg-[#0f0f12] border border-[#232326] rounded-xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[60vh]">
+      <div className="bg-relay-surface border border-relay-border rounded-xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[60vh]">
         {/* Search Input */}
-        <div className="px-3.5 py-2.5 border-b border-[#1a1a1d] flex items-center gap-2.5">
-          <Search className="w-4 h-4 text-[#71717a] flex-shrink-0" />
+        <div className="px-3.5 py-2.5 border-b border-relay-subtle flex items-center gap-2.5">
+          <Search className="w-4 h-4 text-relay-muted flex-shrink-0" />
           <input
             autoFocus
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search threads, messages, rooms, agents..."
-            className="w-full bg-transparent text-xs text-[#fafafa] placeholder-[#52525b] focus:outline-none"
+            className="w-full bg-transparent text-xs text-relay-text placeholder-relay-muted focus:outline-none"
           />
-          <kbd className="text-[10px] px-1.5 py-0.2 rounded bg-[#18181b] text-[#71717a] border border-[#27272a]">
+          <kbd className="text-[10px] px-1.5 py-0.2 rounded bg-relay-elevated text-relay-muted border border-relay-border">
             ESC
           </kbd>
         </div>
@@ -77,11 +77,11 @@ export function SearchModal() {
         {/* Results Stream */}
         <div className="flex-1 overflow-y-auto p-1.5 space-y-0.5">
           {loading && (
-            <div className="p-4 text-center text-xs text-[#71717a]">Searching...</div>
+            <div className="p-4 text-center text-xs text-relay-muted">Searching...</div>
           )}
 
           {!loading && query && results.length === 0 && (
-            <div className="p-4 text-center text-xs text-[#52525b]">
+            <div className="p-4 text-center text-xs text-relay-muted">
               No results found for &ldquo;{query}&rdquo;
             </div>
           )}
@@ -95,18 +95,18 @@ export function SearchModal() {
                   if (item.thread_id) setActiveThread({ id: item.thread_id } as any);
                   setSearchModalOpen(false);
                 }}
-                className="p-2 rounded-md hover:bg-[#18181c] cursor-pointer transition-colors space-y-0.5 text-left"
+                className="p-2 rounded-md hover:bg-relay-hover cursor-pointer transition-colors space-y-0.5 text-left"
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-[#fafafa] truncate">
+                  <span className="text-xs font-medium text-relay-text truncate">
                     {item.title}
                   </span>
-                  <span className="text-[10px] uppercase font-mono px-1 rounded bg-[#141417] text-[#71717a]">
+                  <span className="text-[10px] uppercase font-mono px-1 rounded bg-relay-elevated text-relay-muted border border-relay-border">
                     {item.type}
                   </span>
                 </div>
                 {item.snippet && (
-                  <p className="text-[11px] text-[#71717a] line-clamp-1">
+                  <p className="text-[11px] text-relay-muted line-clamp-1">
                     {item.snippet}
                   </p>
                 )}

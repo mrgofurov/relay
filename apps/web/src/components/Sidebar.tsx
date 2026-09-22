@@ -8,11 +8,14 @@ import {
   Hash,
   Lock,
   LogOut,
+  Moon,
   Plus,
   Search,
   Settings,
+  Sun,
 } from "lucide-react";
 import { useRelayStore } from "../stores/useRelayStore";
+import { useTheme } from "../hooks/useTheme";
 import { api } from "../lib/api";
 import { cn } from "../lib/utils";
 
@@ -33,6 +36,8 @@ export function Sidebar({ onSelectRoom }: SidebarProps) {
     setNewRoomModalOpen,
   } = useRelayStore();
 
+  const { isDark, toggleTheme } = useTheme();
+
   const [expandedProjects, setExpandedProjects] = useState<Record<string, boolean>>({
     all: true,
   });
@@ -45,25 +50,25 @@ export function Sidebar({ onSelectRoom }: SidebarProps) {
   };
 
   return (
-    <aside className="w-60 flex-shrink-0 bg-[#0f0f12] border-r border-[#232326] flex flex-col h-screen select-none text-xs">
+    <aside className="w-60 flex-shrink-0 bg-relay-surface border-r border-relay-border flex flex-col h-screen select-none text-xs">
       {/* Workspace Header */}
-      <div className="h-12 px-3.5 border-b border-[#1a1a1d] flex items-center justify-between">
+      <div className="h-12 px-3.5 border-b border-relay-subtle flex items-center justify-between">
         <div className="flex items-center space-x-2.5 overflow-hidden">
-          <div className="w-6 h-6 rounded-md bg-[#18181c] border border-[#27272a] flex items-center justify-center text-[#fafafa] font-semibold text-xs flex-shrink-0">
+          <div className="w-6 h-6 rounded-md bg-relay-elevated border border-relay-border flex items-center justify-center text-relay-text font-semibold text-xs flex-shrink-0">
             {activeWorkspace?.name?.charAt(0) || "R"}
           </div>
           <div className="truncate">
-            <span className="font-semibold text-xs text-[#fafafa] block truncate leading-tight">
+            <span className="font-semibold text-xs text-relay-text block truncate leading-tight">
               {activeWorkspace?.name || "Relay"}
             </span>
             <div className="flex items-center space-x-1.5 mt-0.5">
               <span
                 className={cn(
                   "w-1.5 h-1.5 rounded-full",
-                  isConnected ? "bg-emerald-400" : "bg-neutral-600"
+                  isConnected ? "bg-emerald-500" : "bg-neutral-400"
                 )}
               />
-              <span className="text-[10px] text-[#71717a] leading-none">
+              <span className="text-[10px] text-relay-muted leading-none">
                 {isConnected ? "Connected" : "Offline"}
               </span>
             </div>
@@ -76,24 +81,24 @@ export function Sidebar({ onSelectRoom }: SidebarProps) {
         {/* Command / Search Trigger */}
         <button
           onClick={() => setSearchModalOpen(true)}
-          className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-md bg-[#141417] hover:bg-[#18181c] border border-[#232326] text-[#71717a] hover:text-[#a1a1aa] transition-colors"
+          className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-md bg-relay-canvas hover:bg-relay-elevated border border-relay-border text-relay-muted hover:text-relay-secondary transition-colors"
         >
           <span className="flex items-center gap-2">
             <Search className="w-3.5 h-3.5" />
             <span className="text-xs">Search...</span>
           </span>
-          <kbd className="px-1 py-0.2 text-[10px] rounded bg-[#18181b] border border-[#27272a] text-[#71717a]">
+          <kbd className="px-1 py-0.2 text-[10px] rounded bg-relay-elevated border border-relay-border text-relay-muted">
             ⌘K
           </kbd>
         </button>
 
         {/* Projects & Rooms Navigation */}
         <div className="space-y-1">
-          <div className="flex items-center justify-between px-2 text-[10px] font-medium tracking-wider text-[#71717a] uppercase">
+          <div className="flex items-center justify-between px-2 text-[10px] font-medium tracking-wider text-relay-muted uppercase">
             <span>Projects & Rooms</span>
             <button
               onClick={() => setNewRoomModalOpen(true)}
-              className="p-0.5 text-[#71717a] hover:text-[#fafafa] transition-colors"
+              className="p-0.5 text-relay-muted hover:text-relay-text transition-colors"
               title="Add Room"
             >
               <Plus className="w-3 h-3" />
@@ -101,7 +106,7 @@ export function Sidebar({ onSelectRoom }: SidebarProps) {
           </div>
 
           {projects.length === 0 ? (
-            <div className="px-2 py-1.5 text-xs text-[#52525b]">No projects yet</div>
+            <div className="px-2 py-1.5 text-xs text-relay-muted">No projects yet</div>
           ) : (
             projects.map((proj) => {
               const isExpanded = expandedProjects[proj.id] !== false;
@@ -111,23 +116,23 @@ export function Sidebar({ onSelectRoom }: SidebarProps) {
                 <div key={proj.id} className="space-y-0.5">
                   <button
                     onClick={() => toggleProject(proj.id)}
-                    className="w-full flex items-center justify-between px-2 py-1 rounded-md hover:bg-[#151518] text-[#a1a1aa] hover:text-[#fafafa] transition-colors"
+                    className="w-full flex items-center justify-between px-2 py-1 rounded-md hover:bg-relay-hover text-relay-secondary hover:text-relay-text transition-colors"
                   >
                     <span className="flex items-center gap-1.5 truncate">
                       {isExpanded ? (
-                        <ChevronDown className="w-3 h-3 text-[#71717a]" />
+                        <ChevronDown className="w-3 h-3 text-relay-muted" />
                       ) : (
-                        <ChevronRight className="w-3 h-3 text-[#71717a]" />
+                        <ChevronRight className="w-3 h-3 text-relay-muted" />
                       )}
                       <span className="truncate font-medium">{proj.name}</span>
                     </span>
-                    <span className="text-[10px] text-[#52525b] font-mono">
+                    <span className="text-[10px] text-relay-muted font-mono">
                       {proj.key}
                     </span>
                   </button>
 
                   {isExpanded && (
-                    <div className="ml-2 pl-2 border-l border-[#1a1a1d] space-y-0.5 mt-0.5">
+                    <div className="ml-2 pl-2 border-l border-relay-subtle space-y-0.5 mt-0.5">
                       {projectRooms.map((room) => {
                         const isActive = activeRoom?.id === room.id;
                         const isGitEvents = room.slug === "git-events";
@@ -139,23 +144,23 @@ export function Sidebar({ onSelectRoom }: SidebarProps) {
                             className={cn(
                               "w-full flex items-center justify-between px-2 py-1 rounded-md text-xs transition-colors text-left",
                               isActive
-                                ? "bg-[#18181c] text-[#fafafa] font-medium"
-                                : "text-[#71717a] hover:text-[#d4d4d8] hover:bg-[#141417]"
+                                ? "bg-relay-elevated text-relay-text font-medium"
+                                : "text-relay-muted hover:text-relay-secondary hover:bg-relay-hover"
                             )}
                           >
                             <span className="flex items-center gap-1.5 truncate">
                               {isGitEvents ? (
-                                <FolderGit2 className="w-3.5 h-3.5 text-[#a1a1aa] flex-shrink-0" />
+                                <FolderGit2 className="w-3.5 h-3.5 text-relay-secondary flex-shrink-0" />
                               ) : room.is_private ? (
-                                <Lock className="w-3.5 h-3.5 text-[#52525b] flex-shrink-0" />
+                                <Lock className="w-3.5 h-3.5 text-relay-muted flex-shrink-0" />
                               ) : (
-                                <Hash className="w-3.5 h-3.5 text-[#52525b] flex-shrink-0" />
+                                <Hash className="w-3.5 h-3.5 text-relay-muted flex-shrink-0" />
                               )}
                               <span className="truncate">{room.name}</span>
                             </span>
                             {room.auto_discussion && (
                               <span
-                                className="text-[9px] px-1 py-0.2 rounded bg-[#18181c] text-[#71717a] border border-[#27272a]"
+                                className="text-[9px] px-1 py-0.2 rounded bg-relay-canvas text-relay-muted border border-relay-border"
                                 title={`AI Auto Discussion (depth ${room.max_reply_depth})`}
                               >
                                 {room.max_reply_depth}
@@ -173,12 +178,12 @@ export function Sidebar({ onSelectRoom }: SidebarProps) {
         </div>
 
         {/* AI Agents Section */}
-        <div className="pt-2 border-t border-[#1a1a1d] space-y-1">
-          <div className="flex items-center justify-between px-2 text-[10px] font-medium tracking-wider text-[#71717a] uppercase">
+        <div className="pt-2 border-t border-relay-subtle space-y-1">
+          <div className="flex items-center justify-between px-2 text-[10px] font-medium tracking-wider text-relay-muted uppercase">
             <span>AI Agents</span>
             <button
               onClick={() => setAgentModalOpen(true)}
-              className="p-0.5 text-[#71717a] hover:text-[#fafafa] transition-colors"
+              className="p-0.5 text-relay-muted hover:text-relay-text transition-colors"
               title="Register Agent"
             >
               <Plus className="w-3 h-3" />
@@ -187,31 +192,31 @@ export function Sidebar({ onSelectRoom }: SidebarProps) {
 
           <div className="space-y-0.5">
             {agents.length === 0 ? (
-              <div className="px-2 py-1.5 text-xs text-[#52525b]">
+              <div className="px-2 py-1.5 text-xs text-relay-muted">
                 No agents registered
               </div>
             ) : (
               agents.map((agent) => (
                 <div
                   key={agent.id}
-                  className="flex items-center justify-between px-2 py-1.5 rounded-md hover:bg-[#151518] transition-colors"
+                  className="flex items-center justify-between px-2 py-1.5 rounded-md hover:bg-relay-hover transition-colors"
                 >
                   <div className="flex items-center gap-2 truncate">
                     <span
                       className={cn(
                         "w-1.5 h-1.5 rounded-full flex-shrink-0",
                         agent.status === "online"
-                          ? "bg-emerald-400"
+                          ? "bg-emerald-500"
                           : agent.status === "busy"
                           ? "bg-amber-400"
-                          : "bg-neutral-600"
+                          : "bg-neutral-400"
                       )}
                     />
-                    <span className="text-[#fafafa] font-medium truncate">
+                    <span className="text-relay-text font-medium truncate">
                       @{agent.name}
                     </span>
                   </div>
-                  <span className="text-[10px] text-[#71717a] capitalize flex-shrink-0 font-mono">
+                  <span className="text-[10px] text-relay-muted capitalize flex-shrink-0 font-mono">
                     {agent.provider}
                   </span>
                 </div>
@@ -221,25 +226,33 @@ export function Sidebar({ onSelectRoom }: SidebarProps) {
         </div>
       </div>
 
-      {/* User Footer Profile */}
-      <div className="p-2.5 border-t border-[#1a1a1d] bg-[#0c0c0e] flex items-center justify-between">
+      {/* User Footer Profile & Theme Switcher */}
+      <div className="p-2.5 border-t border-relay-subtle bg-relay-surface flex items-center justify-between">
         <div className="flex items-center space-x-2 truncate">
-          <div className="w-6 h-6 rounded-full bg-[#1c1c20] border border-[#27272a] flex items-center justify-center text-[10px] font-medium text-[#fafafa]">
+          <div className="w-6 h-6 rounded-full bg-relay-elevated border border-relay-border flex items-center justify-center text-[10px] font-medium text-relay-text">
             {activeWorkspace?.name?.charAt(0) || "U"}
           </div>
           <div className="truncate">
-            <span className="text-xs font-medium text-[#fafafa] block truncate leading-tight">
+            <span className="text-xs font-medium text-relay-text block truncate leading-tight">
               Developer
             </span>
-            <span className="text-[10px] text-[#71717a] block truncate leading-none">
+            <span className="text-[10px] text-relay-muted block truncate leading-none">
               Active Node
             </span>
           </div>
         </div>
         <div className="flex items-center gap-0.5">
           <button
+            onClick={toggleTheme}
+            className="p-1 rounded hover:bg-relay-hover text-relay-muted hover:text-relay-text transition-colors"
+            title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+            aria-label="Toggle Theme"
+          >
+            {isDark ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+          </button>
+          <button
             onClick={() => alert("Relay v0.1.0 — Production Developer Platform")}
-            className="p-1 rounded hover:bg-[#18181c] text-[#71717a] hover:text-[#fafafa] transition-colors"
+            className="p-1 rounded hover:bg-relay-hover text-relay-muted hover:text-relay-text transition-colors"
             title="Settings"
           >
             <Settings className="w-3.5 h-3.5" />
@@ -249,7 +262,7 @@ export function Sidebar({ onSelectRoom }: SidebarProps) {
               api.clearToken();
               window.location.reload();
             }}
-            className="p-1 rounded hover:bg-[#18181c] text-[#71717a] hover:text-[#fafafa] transition-colors"
+            className="p-1 rounded hover:bg-relay-hover text-relay-muted hover:text-relay-text transition-colors"
             title="Sign Out"
           >
             <LogOut className="w-3.5 h-3.5" />

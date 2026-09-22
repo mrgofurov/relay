@@ -12,7 +12,8 @@ import { NewRoomModal } from "../components/NewRoomModal";
 import { useRelayStore } from "../stores/useRelayStore";
 import { useWebSocket } from "../hooks/useWebSocket";
 import { api } from "../lib/api";
-import { Bot, Key, Lock, Mail, Sparkles, User } from "lucide-react";
+import { Bot, Key, Lock, Mail, Moon, Sparkles, Sun, User } from "lucide-react";
+import { useTheme } from "../hooks/useTheme";
 
 export default function Home() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
@@ -22,6 +23,8 @@ export default function Home() {
   const [fullName, setFullName] = useState("Lead Developer");
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+
+  const { isDark, toggleTheme } = useTheme();
 
   const {
     activeWorkspace,
@@ -211,7 +214,7 @@ export default function Home() {
 
   if (isAuthenticated === null) {
     return (
-      <div className="h-screen w-screen bg-[#09090b] flex items-center justify-center text-xs text-[#71717a]">
+      <div className="h-screen w-screen bg-relay-canvas flex items-center justify-center text-xs text-relay-muted">
         Loading Relay...
       </div>
     );
@@ -219,18 +222,31 @@ export default function Home() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-[#09090b] flex flex-col items-center justify-center p-4 selection:bg-[#27272a]">
-        <div className="w-full max-w-[380px] bg-[#0f0f12] border border-[#232326] rounded-xl p-7 space-y-6 shadow-xl">
+      <div className="min-h-screen bg-relay-canvas flex flex-col items-center justify-center p-4 relative selection:bg-relay-active">
+        {/* Top-right theme toggle */}
+        <div className="absolute top-4 right-4">
+          <button
+            onClick={toggleTheme}
+            className="p-2 rounded-md bg-relay-surface border border-relay-border text-relay-muted hover:text-relay-text hover:bg-relay-hover transition-colors shadow-sm flex items-center gap-1.5 text-xs"
+            title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+            aria-label="Toggle Theme"
+          >
+            {isDark ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+            <span className="text-[11px] font-medium">{isDark ? "Light" : "Dark"}</span>
+          </button>
+        </div>
+
+        <div className="w-full max-w-[380px] bg-relay-surface border border-relay-border rounded-xl p-7 space-y-6 shadow-xl">
           {/* Brand Header */}
           <div className="text-center space-y-2">
-            <div className="w-8 h-8 rounded-md bg-[#18181b] border border-[#27272a] mx-auto flex items-center justify-center text-white font-medium text-xs tracking-wider">
+            <div className="w-8 h-8 rounded-md bg-relay-elevated border border-relay-border mx-auto flex items-center justify-center text-relay-text font-medium text-xs tracking-wider">
               R
             </div>
             <div>
-              <h1 className="text-base font-semibold text-[#fafafa] tracking-tight">
+              <h1 className="text-base font-semibold text-relay-text tracking-tight">
                 {isRegistering ? "Create your workspace" : "Welcome back"}
               </h1>
-              <p className="text-xs text-[#71717a] mt-0.5">
+              <p className="text-xs text-relay-muted mt-0.5">
                 {isRegistering
                   ? "Start collaborating with AI agents and developers"
                   : "Sign in to continue to Relay"}
@@ -239,7 +255,7 @@ export default function Home() {
           </div>
 
           {authError && (
-            <div className="p-2.5 rounded-md bg-[#181113] border border-[#441a1f] text-xs text-[#f87171]">
+            <div className="p-2.5 rounded-md bg-rose-500/10 border border-rose-500/20 text-xs text-rose-500">
               {authError}
             </div>
           )}
@@ -247,46 +263,46 @@ export default function Home() {
           <form onSubmit={handleAuthSubmit} className="space-y-3.5 text-xs">
             {isRegistering && (
               <div className="space-y-1.5">
-                <label className="text-[#a1a1aa] font-medium block">Full Name</label>
+                <label className="text-relay-secondary font-medium block">Full Name</label>
                 <input
                   type="text"
                   required
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   placeholder="Jane Doe"
-                  className="w-full px-3 py-2 rounded-md bg-[#141417] border border-[#27272a] text-[#fafafa] placeholder-[#52525b] focus:outline-none focus:border-[#52525b] transition-colors"
+                  className="w-full px-3 py-2 rounded-md bg-relay-elevated border border-relay-border text-relay-text placeholder-relay-muted focus:outline-none focus:border-relay-secondary transition-colors"
                 />
               </div>
             )}
 
             <div className="space-y-1.5">
-              <label className="text-[#a1a1aa] font-medium block">Email</label>
+              <label className="text-relay-secondary font-medium block">Email</label>
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="developer@example.com"
-                className="w-full px-3 py-2 rounded-md bg-[#141417] border border-[#27272a] text-[#fafafa] placeholder-[#52525b] focus:outline-none focus:border-[#52525b] transition-colors"
+                className="w-full px-3 py-2 rounded-md bg-relay-elevated border border-relay-border text-relay-text placeholder-relay-muted focus:outline-none focus:border-relay-secondary transition-colors"
               />
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[#a1a1aa] font-medium block">Password</label>
+              <label className="text-relay-secondary font-medium block">Password</label>
               <input
                 type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full px-3 py-2 rounded-md bg-[#141417] border border-[#27272a] text-[#fafafa] placeholder-[#52525b] focus:outline-none focus:border-[#52525b] transition-colors"
+                className="w-full px-3 py-2 rounded-md bg-relay-elevated border border-relay-border text-relay-text placeholder-relay-muted focus:outline-none focus:border-relay-secondary transition-colors"
               />
             </div>
 
             <button
               type="submit"
               disabled={authLoading}
-              className="w-full mt-2 py-2 rounded-md bg-[#fafafa] hover:bg-white text-[#09090b] font-medium text-xs transition-colors disabled:opacity-50"
+              className="w-full mt-2 py-2 rounded-md bg-relay-text hover:opacity-90 text-relay-canvas font-medium text-xs transition-colors disabled:opacity-50 shadow-sm"
             >
               {authLoading
                 ? "Signing in..."
@@ -299,20 +315,20 @@ export default function Home() {
               type="button"
               onClick={handleDemoLogin}
               disabled={authLoading}
-              className="w-full py-2 rounded-md bg-[#151518] hover:bg-[#1a1a1e] border border-[#232326] text-[#a1a1aa] hover:text-[#fafafa] font-medium text-xs transition-colors"
+              className="w-full py-2 rounded-md bg-relay-elevated hover:bg-relay-hover border border-relay-border text-relay-secondary hover:text-relay-text font-medium text-xs transition-colors"
             >
               Demo Workspace Login
             </button>
           </form>
 
-          <div className="text-center text-xs text-[#71717a] pt-1 border-t border-[#1a1a1d]">
+          <div className="text-center text-xs text-relay-muted pt-1 border-t border-relay-subtle">
             {isRegistering ? (
               <span>
                 Already have an account?{" "}
                 <button
                   type="button"
                   onClick={() => setIsRegistering(false)}
-                  className="text-[#fafafa] hover:underline font-medium"
+                  className="text-relay-text hover:underline font-medium"
                 >
                   Sign in
                 </button>
@@ -323,7 +339,7 @@ export default function Home() {
                 <button
                   type="button"
                   onClick={() => setIsRegistering(true)}
-                  className="text-[#fafafa] hover:underline font-medium"
+                  className="text-relay-text hover:underline font-medium"
                 >
                   Create account
                 </button>
@@ -336,7 +352,7 @@ export default function Home() {
   }
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-[#09090b] text-[#fafafa]">
+    <div className="flex h-screen w-screen overflow-hidden bg-relay-canvas text-relay-text">
       {/* Column 1: Projects & Rooms Navigation */}
       <Sidebar onSelectRoom={handleSelectRoom} />
 
