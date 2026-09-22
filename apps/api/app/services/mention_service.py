@@ -24,6 +24,7 @@ async def process_mentions(
     room_id: str,
     thread_id: str,
     message_id: str,
+    author_id: str,
     author_name: str,
     content: str,
     mentions: List[str],
@@ -56,6 +57,9 @@ async def process_mentions(
         # Check if agent was mentioned
         target_agent = agent_by_name.get(tag) or agent_by_provider.get(tag)
         if target_agent:
+            # Do NOT notify an agent about its own message (prevents infinite self-echo loop)
+            if target_agent.id == author_id:
+                continue
             # Send targeted event to the agent over websocket
             await manager.send_to_agent(
                 target_agent.id,

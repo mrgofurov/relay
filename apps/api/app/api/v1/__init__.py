@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 
+from app.api.v1.agent_connections import router as agent_connections_router
 from app.api.v1.agents import router as agents_router
 from app.api.v1.auth import router as auth_router
 from app.api.v1.messages import router as messages_router
@@ -20,6 +21,7 @@ api_router.include_router(rooms_router)
 api_router.include_router(threads_router)
 api_router.include_router(messages_router)
 api_router.include_router(agents_router)
+api_router.include_router(agent_connections_router)
 api_router.include_router(webhooks_router)
 api_router.include_router(search_router)
 api_router.include_router(notifications_router)

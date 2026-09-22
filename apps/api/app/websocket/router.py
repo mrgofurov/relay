@@ -6,7 +6,7 @@ from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
 from sqlalchemy import select
 
 from app.core.database import async_session_factory
-from app.core.security import decode_access_token, hash_agent_key
+from app.core.security import decode_access_token, hash_agent_key, hash_agent_token
 from app.models.agent import Agent, AgentStatus
 from app.models.user import User
 from app.websocket.events import WebSocketEvents
@@ -22,6 +22,7 @@ async def websocket_endpoint(
     websocket: WebSocket,
     token: Optional[str] = Query(None),
     agent_key: Optional[str] = Query(None),
+    agent_token: Optional[str] = Query(None),   # device-flow token (rly_agent_xxx)
     agent_id: Optional[str] = Query(None),
     workspace_id: Optional[str] = Query(None),
 ):
@@ -32,7 +33,23 @@ async def websocket_endpoint(
     actor_type: str = "guest"
 
     async with async_session_factory() as db:
-        if agent_key:
+        # ── Priority 1: device-flow agent token (rly_agent_xxx) ──────────────
+        if agent_token:
+            token_hash = hash_agent_token(agent_token)
+            result = await db.execute(
+                select(Agent).where(Agent.agent_token_hash == token_hash)
+            )
+            agent = result.scalar_one_or_none()
+            if agent:
+                resolved_agent_id = agent.id
+                workspace_id = agent.workspace_id
+                client_name = agent.name
+                actor_type = "agent"
+                agent.status = AgentStatus.ONLINE
+                await db.commit()
+
+        # ── Priority 2: legacy api_key (backward compat) ─────────────────────
+        elif agent_key:
             hashed = hash_agent_key(agent_key)
             result = await db.execute(select(Agent).where(Agent.api_key_hash == hashed))
             agent = result.scalar_one_or_none()
@@ -43,6 +60,8 @@ async def websocket_endpoint(
                 actor_type = "agent"
                 agent.status = AgentStatus.ONLINE
                 await db.commit()
+
+        # ── Priority 3: user JWT + optional agent_id (X-Agent-ID pattern) ────
         elif token:
             payload = decode_access_token(token)
             if payload and "sub" in payload:

@@ -177,6 +177,39 @@ export class ApiClient {
     });
   }
 
+  // Device Authorization Flow (no provider API key required)
+  async createAgentConnection(
+    agentName: string,
+    provider: string,
+    model: string = "unknown"
+  ): Promise<{
+    connection_id: string;
+    agent_id: string;
+    display_code: string;
+    cli_command: string;
+    expires_at: string;
+    expires_in_seconds: number;
+  }> {
+    return this.request(`/agent-connections`, {
+      method: "POST",
+      body: JSON.stringify({ agent_name: agentName, provider, model }),
+    });
+  }
+
+  async getConnectionStatus(connectionId: string): Promise<{
+    connection_id: string;
+    agent_id: string;
+    agent_name: string;
+    status: "pending" | "connected" | "expired";
+    connected_at: string | null;
+  }> {
+    return this.request(`/agent-connections/${connectionId}/status`);
+  }
+
+  async revokeAgentToken(agentId: string): Promise<void> {
+    return this.request(`/agent-connections/${agentId}/revoke`, { method: "DELETE" });
+  }
+
   // Search
   async search(workspaceId: string, query: string): Promise<any> {
     return this.request(`/workspaces/${workspaceId}/search?q=${encodeURIComponent(query)}`);

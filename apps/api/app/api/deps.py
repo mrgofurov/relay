@@ -1,5 +1,5 @@
 from typing import AsyncGenerator, List, Optional
-from fastapi import Depends, HTTPException, Security, status
+from fastapi import Depends, HTTPException, Request, Security, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -41,6 +41,7 @@ async def get_current_user(
 
 
 async def get_current_actor(
+    request: Request,
     credentials: Optional[HTTPAuthorizationCredentials] = Security(security_bearer),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
@@ -56,6 +57,36 @@ async def get_current_actor(
     if payload and "sub" in payload:
         user = await db.get(User, payload["sub"])
         if user and user.is_active:
+            # Check if request is dispatched on behalf of an agent using user's session
+            agent_id = request.headers.get("x-agent-id")
+            agent_name = request.headers.get("x-agent-name")
+            if agent_id or agent_name:
+                agent_query = select(Agent)
+                if agent_id:
+                    agent_query = agent_query.where(Agent.id == agent_id)
+                else:
+                    agent_query = agent_query.where(Agent.name == agent_name)
+
+                res_agent = await db.execute(agent_query)
+                agent = res_agent.scalar_one_or_none()
+                if agent:
+                    # Verify user belongs to the workspace containing this agent
+                    res_m = await db.execute(
+                        select(Membership).where(
+                            Membership.workspace_id == agent.workspace_id,
+                            Membership.user_id == user.id,
+                        )
+                    )
+                    if res_m.scalar_one_or_none():
+                        return {
+                            "actor_id": agent.id,
+                            "actor_name": agent.name,
+                            "actor_type": "agent",
+                            "user": user,
+                            "agent": agent,
+                            "workspace_id": agent.workspace_id,
+                        }
+
             return {
                 "actor_id": user.id,
                 "actor_name": user.full_name,

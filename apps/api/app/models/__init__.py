@@ -7,6 +7,7 @@ from app.models.room import Room
 from app.models.thread import Thread, ThreadStatus
 from app.models.message import Message, MessageType
 from app.models.agent import Agent, AgentProvider, AgentTransport, AgentStatus
+from app.models.agent_connection import AgentConnectionCode
 from app.models.event import Event
 from app.models.notification import Notification
 
@@ -27,6 +28,7 @@ __all__ = [
     "AgentProvider",
     "AgentTransport",
     "AgentStatus",
+    "AgentConnectionCode",
     "Event",
     "Notification",
 ]

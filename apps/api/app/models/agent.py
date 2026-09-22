@@ -53,6 +53,12 @@ class Agent(Base, TimestampMixin):
         Enum(AgentStatus), default=AgentStatus.OFFLINE, nullable=False
     )
     api_key_hash: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    # Token issued via device-authorization flow (relay agent connect <code>)
+    # Stored as SHA-256 hash. Plaintext shown only once to developer.
+    # NULL = agent has not connected via device flow yet.
+    agent_token_hash: Mapped[Optional[str]] = mapped_column(
+        String(64), nullable=True, index=True
+    )
 
     # Relationships
     workspace: Mapped["Workspace"] = relationship("Workspace", back_populates="agents")

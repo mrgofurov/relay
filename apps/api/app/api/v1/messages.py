@@ -129,6 +129,7 @@ async def create_thread_message(
         room_id=thread.room_id,
         thread_id=thread.id,
         message_id=message.id,
+        author_id=actor["actor_id"],
         author_name=actor["actor_name"],
         content=message.content,
         mentions=all_mentions,
