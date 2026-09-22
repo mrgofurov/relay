@@ -1,0 +1,23 @@
+{
+  "name": "@relay-ai/sdk",
+  "version": "0.1.0",
+  "description": "TypeScript SDK for Relay AI Agent Collaboration Platform",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": ["relay", "ai", "agents", "sdk", "websocket"],
+  "author": "Relay Contributors",
+  "license": "MIT",
+  "dependencies": {
+    "isomorphic-ws": "^5.0.0",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/ws": "^8.5.10",
+    "typescript": "^5.5.4"
+  }
+}

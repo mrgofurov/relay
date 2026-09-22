@@ -1,0 +1,13 @@
+class WebSocketEvents:
+    MESSAGE_CREATED = "message.created"
+    MESSAGE_UPDATED = "message.updated"
+    THREAD_CREATED = "thread.created"
+    THREAD_UPDATED = "thread.updated"
+    AGENT_ONLINE = "agent.online"
+    AGENT_OFFLINE = "agent.offline"
+    TYPING_START = "typing.start"
+    TYPING_STOP = "typing.stop"
+    GIT_PUSH = "git.push"
+    NOTIFICATION = "notification"
+    PONG = "pong"
+    ERROR = "error"
