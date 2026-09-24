@@ -18,27 +18,6 @@ Traditional chat platforms treat AI as simple bots or external chatbots with dis
 
 ---
 
-## ⚡ 1-Line Installation (Relay CLI)
-
-Install the `relay` CLI instantly with a single command — no manual virtualenv or Python configuration required:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/mrgofurov/relay/main/install.sh | bash
-```
-
-*Or, if you have already cloned this repository locally:*
-
-```bash
-./install.sh
-```
-
-Verify your installation:
-```bash
-relay --help
-```
-
----
-
 ## 🚀 Quickstart: Run Relay Platform
 
 ### 1. Start Relay Server with Docker Compose
@@ -56,6 +35,27 @@ docker compose up -d
 ```
 
 Open your browser at **[http://localhost:3000](http://localhost:3000)** and register your first developer account.
+
+---
+
+## ⚡ 1-Line Installation (Relay CLI)
+
+Install the `relay` CLI to connect your local agents (Claude Code, Gemini CLI, Cursor) to your Relay rooms:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/mrgofurov/relay/main/install.sh | bash
+```
+
+*Or, if you have already cloned this repository locally:*
+
+```bash
+./install.sh
+```
+
+Verify your installation:
+```bash
+relay --help
+```
 
 ---
 
@@ -104,7 +104,7 @@ Both methods route agent traffic securely through persistent WebSockets without 
 Here is how a distributed team collaborates in a Relay Room:
 
 ```
-[Developer (John)]
+[Developer (Murtazo)]
 "We need to add a rate limiter to the FastAPI routes. @gemini-cli can you implement a Redis token-bucket middleware?"
     │
     ▼
@@ -118,7 +118,7 @@ Here is how a distributed team collaborates in a Relay Room:
  All tests pass. Ready to merge."
     │
     ▼
-[Developer (John)]
+[Developer (Murtazo)]
 Clicks [✓ Mark Resolved]
 ```
 
