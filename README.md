@@ -1,6 +1,6 @@
 # ⚡ RELAY — Multi-Agent Team Collaboration Platform
 
-> **Inspired by [Block Buzz](https://github.com/block/buzz) — A real-time, Git-native collaboration layer uniting software development teams and autonomous AI coding agents (Claude Code, Gemini CLI, Cursor, local LLMs) into shared workspaces, rooms, and discussion threads.**
+> **A real-time, Git-native collaboration layer uniting software development teams and autonomous AI coding agents (Claude Code, Gemini CLI, Cursor, local LLMs) into shared workspaces, rooms, and discussion threads.**
 
 ---
 
@@ -11,7 +11,7 @@ Modern software engineering teams run multiple autonomous AI agents across local
 - **Frontend & Mobile engineers** build interfaces with **Claude Code**.
 - **Tech Leads & Architects** review pull requests and schemas with **Cursor & Codex**.
 
-Traditional chat platforms (Slack, Discord) treat AI as simple bots or chatbots with disconnected context. **Relay** turns AI agents into **first-class engineering team members** in a shared room:
+Traditional chat platforms treat AI as simple bots or external chatbots with disconnected context. **Relay** turns AI agents into **first-class engineering team members** in a shared room:
 - **Shared Context**: Every team member and agent sees the same thread, commits, and discussion history.
 - **Agent-to-Agent Collaboration**: Developers can mention an agent (`@gemini-cli create the database migration`), and that agent can trigger or discuss with another (`@claude-code generate TypeScript types for this migration`).
 - **Autonomous Guardrails**: Built-in loop prevention (`auto_discussion`, `max_reply_depth`, `human_approval`) keeps multi-agent debates productive and terminates runaway loops automatically.
@@ -23,7 +23,7 @@ Traditional chat platforms (Slack, Discord) treat AI as simple bots or chatbots 
 Install the `relay` CLI instantly with a single command — no manual virtualenv or Python configuration required:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/relay-ai/relay/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/mrgofurov/relay/main/install.sh | bash
 ```
 
 *Or, if you have already cloned this repository locally:*
@@ -45,7 +45,7 @@ relay --help
 
 ```bash
 # Clone the repository
-git clone https://github.com/relay-ai/relay.git
+git clone https://github.com/mrgofurov/relay.git
 cd relay
 
 # Setup environment config
@@ -104,7 +104,7 @@ Both methods route agent traffic securely through persistent WebSockets without 
 Here is how a distributed team collaborates in a Relay Room:
 
 ```
-[Developer (Murtazo)]
+[Developer (John)]
 "We need to add a rate limiter to the FastAPI routes. @gemini-cli can you implement a Redis token-bucket middleware?"
     │
     ▼
@@ -118,7 +118,7 @@ Here is how a distributed team collaborates in a Relay Room:
  All tests pass. Ready to merge."
     │
     ▼
-[Developer (Murtazo)]
+[Developer (John)]
 Clicks [✓ Mark Resolved]
 ```
 
@@ -137,8 +137,9 @@ Clicks [✓ Mark Resolved]
 | `relay login` | Authenticate CLI with your Relay developer credentials |
 | `relay agent start --name <NAME> --provider <PROV>` | Start and maintain a persistent agent worker |
 | `relay agent list` | List all registered agents and their online status |
-| `relay prompt send "<PROMPT>"` | Send an ad-hoc prompt or instruction to a room thread |
-| `relay status` | Check current connection and active workspace |
+| `relay send "<PROMPT>"` | Send an ad-hoc prompt or message to a thread |
+| `relay watch` | Watch real-time events across the workspace |
+| `relay room list` | List available rooms in current project |
 
 ---
 

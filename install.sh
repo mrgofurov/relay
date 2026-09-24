@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Relay CLI 1-Line Installer
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/relay-ai/relay/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/mrgofurov/relay/main/install.sh | bash
 #   or locally: ./install.sh
 
 set -euo pipefail
@@ -43,36 +43,50 @@ fi
 
 echo -e "Found Python: ${GREEN}$(${PYTHON_BIN} --version)${NC}"
 
-# Detect if running from within a local relay repository
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd || echo "")"
-LOCAL_API_DIR="${SCRIPT_DIR}/apps/api"
-
-if [ -d "${LOCAL_API_DIR}" ] && [ -f "${LOCAL_API_DIR}/pyproject.toml" ]; then
-    echo -e "Installing from local source: ${BLUE}${LOCAL_API_DIR}${NC}"
-    "${PYTHON_BIN}" -m venv "${VENV_DIR}"
-    "${VENV_DIR}/bin/pip" install --quiet --upgrade pip
-    "${VENV_DIR}/bin/pip" install --quiet -e "${LOCAL_API_DIR}"
-else
-    echo -e "Installing latest Relay CLI package..."
-    "${PYTHON_BIN}" -m venv "${VENV_DIR}"
-    "${VENV_DIR}/bin/pip" install --quiet --upgrade pip
-    # Install with core dependencies
-    "${VENV_DIR}/bin/pip" install --quiet "git+https://github.com/relay-ai/relay.git#subdirectory=apps/api" 2>/dev/null || {
-        echo -e "${YELLOW}Notice: Falling back to direct CLI wrapper...${NC}"
-    }
+# Detect if running from within a local relay repository or current working directory
+LOCAL_API_DIR=""
+if [ -d "./apps/api" ] && [ -f "./apps/api/pyproject.toml" ]; then
+    LOCAL_API_DIR="$(pwd)/apps/api"
+elif [ -n "${BASH_SOURCE[0]:-}" ] && [ -f "${BASH_SOURCE[0]}" ]; then
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd || echo "")"
+    if [ -d "${SCRIPT_DIR}/apps/api" ] && [ -f "${SCRIPT_DIR}/apps/api/pyproject.toml" ]; then
+        LOCAL_API_DIR="${SCRIPT_DIR}/apps/api"
+    fi
 fi
 
-# Create launcher shim in ~/.relay/bin/relay
+echo -e "Preparing virtual environment in ${VENV_DIR}..."
+"${PYTHON_BIN}" -m venv "${VENV_DIR}"
+"${VENV_DIR}/bin/pip" install --upgrade pip --quiet
+
+if [ -n "${LOCAL_API_DIR}" ]; then
+    echo -e "Installing from local source: ${BLUE}${LOCAL_API_DIR}${NC}"
+    "${VENV_DIR}/bin/pip" install --quiet -e "${LOCAL_API_DIR}"
+else
+    echo -e "Installing Relay CLI from GitHub repository (${BLUE}mrgofurov/relay${NC})..."
+    "${VENV_DIR}/bin/pip" install --quiet "git+https://github.com/mrgofurov/relay.git#subdirectory=apps/api"
+fi
+
+if [ ! -f "${VENV_DIR}/bin/relay" ]; then
+    echo -e "${RED}Error: Relay executable was not created in ${VENV_DIR}/bin/relay${NC}"
+    exit 1
+fi
+
+# Create launcher shim in ~/.relay/bin/relay using absolute HOME path
 cat <<EOF > "${BIN_DIR}/relay"
 #!/usr/bin/env bash
-exec "${VENV_DIR}/bin/relay" "\$@"
+VENV_BIN="${VENV_DIR}/bin/relay"
+if [ -f "\${VENV_BIN}" ]; then
+    exec "\${VENV_BIN}" "\$@"
+else
+    echo "Error: Relay virtualenv not found at \${VENV_BIN}" >&2
+    exit 1
+fi
 EOF
 chmod +x "${BIN_DIR}/relay"
 
-# Also symlink into ~/.local/bin if it exists and is writable
-if [ -d "${HOME}/.local/bin" ] && [ -w "${HOME}/.local/bin" ]; then
-    ln -sf "${BIN_DIR}/relay" "${HOME}/.local/bin/relay"
-fi
+# Also symlink into ~/.local/bin if directory exists
+mkdir -p "${HOME}/.local/bin"
+ln -sf "${BIN_DIR}/relay" "${HOME}/.local/bin/relay"
 
 echo ""
 echo -e "${GREEN}${BOLD}✓ Relay CLI installed successfully!${NC}"
@@ -82,18 +96,18 @@ echo ""
 case ":$PATH:" in
     *":${BIN_DIR}:"*|*":${HOME}/.local/bin:"*) ;;
     *)
-        echo -e "${YELLOW}Add Relay to your PATH:${NC}"
+        echo -e "${YELLOW}Notice: Ensure ~/.local/bin is in your PATH:${NC}"
         SHELL_RC="${HOME}/.bashrc"
         if [ -n "${ZSH_VERSION:-}" ] || [ "$(basename "${SHELL:-}")" = "zsh" ]; then
             SHELL_RC="${HOME}/.zshrc"
         fi
-        echo -e "  echo 'export PATH=\"${BIN_DIR}:\$PATH\"' >> ${SHELL_RC}"
-        echo -e "  export PATH=\"${BIN_DIR}:\$PATH\""
+        echo -e "  echo 'export PATH=\"\$HOME/.local/bin:\$PATH\"' >> ${SHELL_RC}"
+        echo -e "  export PATH=\"\$HOME/.local/bin:\$PATH\""
         echo ""
         ;;
 esac
 
-echo -e "To get started:"
+echo -e "Try it now:"
 echo -e "  ${BOLD}relay --help${NC}"
 echo -e "  ${BOLD}relay login${NC}"
 echo -e "  ${BOLD}relay agent connect <CODE>${NC}"
