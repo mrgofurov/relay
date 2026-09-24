@@ -1,101 +1,150 @@
-# ⚡ RELAY — AI Collaboration Platform
+# ⚡ RELAY — Multi-Agent Team Collaboration Platform
 
-> **A Git-native, real-time collaboration layer connecting human developers and autonomous AI coding agents (Claude Code, Gemini CLI, ChatGPT Codex, Cursor) into shared workspaces, rooms, and threads.**
-
----
-
-## 🌟 Mission
-
-Software teams today run multiple AI coding agents across disparate CLI sessions and local terminals. **Relay** acts as the orchestration and communication layer between humans, repositories, and AI agents.
-
-- Backend engineers work with **Gemini CLI**
-- Frontend & Mobile engineers collaborate with **Claude Code**
-- Code reviews and architecture critiques run with **GPT-5 / Cursor**
-
-All agents collaborate inside the same room and thread in real time without manual copy-pasting of context.
+> **Inspired by [Block Buzz](https://github.com/block/buzz) — A real-time, Git-native collaboration layer uniting software development teams and autonomous AI coding agents (Claude Code, Gemini CLI, Cursor, local LLMs) into shared workspaces, rooms, and discussion threads.**
 
 ---
 
-## ⚡ Key Principles & Features
+## 🌟 The Vision: Collaborative Engineering with AI Agents
 
-1. **AI Provider Agnostic**: Native support for Claude, Gemini, OpenAI, Cursor, and custom local models.
-2. **Self-Hosted First**: Minimal, lightweight Docker deployment with zero bloat (PostgreSQL only; no Redis, Keycloak, or Kafka).
-3. **Thread-First Communication**: Conversations are isolated in structured threads — never flattened channels.
-4. **AI Discussion Guardrails**: Configurable loop-prevention engine (`auto_discussion`, `max_reply_depth`, `human_approval`).
-5. **Real-time Engine**: Persistent WebSockets with room/thread subscriptions, typing indicators, and heartbeat.
-6. **Git-Native Workflows**: GitHub webhooks stream commits, branches, and PRs into designated `#git-events` channels.
-7. **Event Sourcing**: Immutable audit log of every message, mention, and system event.
-8. **Multi-Language SDKs**: Native agent SDKs for Python, Go, and TypeScript.
-9. **Relay CLI**: Command-line developer tool for starting agents, streaming logs, and sending prompts.
-10. **Linear-Grade UI**: 3-column dark-mode dashboard inspired by Linear, Discord, and Slack.
+Modern software engineering teams run multiple autonomous AI agents across local terminals and IDEs:
+- **Backend engineers** work with **Gemini CLI** in their terminal.
+- **Frontend & Mobile engineers** build interfaces with **Claude Code**.
+- **Tech Leads & Architects** review pull requests and schemas with **Cursor & Codex**.
 
----
-
-## 🏗 Repository Structure
-
-```
-relay/
-├── apps/
-│   ├── api/                     # FastAPI backend + WebSocket + CLI + tests
-│   │   ├── app/
-│   │   │   ├── api/v1/          # REST endpoints (auth, workspaces, rooms, threads, etc.)
-│   │   │   ├── core/            # Config, security, database engine
-│   │   │   ├── models/          # SQLAlchemy 2.0 async models
-│   │   │   ├── schemas/         # Pydantic v2 schemas
-│   │   │   ├── services/        # Discussion loop, event sourcing, mentions, git
-│   │   │   ├── websocket/       # Real-time connection manager
-│   │   │   └── main.py          # FastAPI application entrypoint
-│   │   ├── cli/                 # relay CLI command-line tool
-│   │   └── tests/               # pytest test suite
-│   └── web/                     # Next.js 15 App Router + React 19 + TailwindCSS
-│       ├── src/
-│       │   ├── app/             # Next.js pages & layout
-│       │   ├── components/      # 3-column UI: Sidebar, ThreadList, ConversationView
-│       │   ├── hooks/           # useWebSocket hook
-│       │   ├── stores/          # Zustand store
-│       │   └── types/           # TypeScript contracts
-├── packages/
-│   ├── sdk-python/              # Python Agent SDK (relay.Agent, async/sync)
-│   ├── sdk-go/                  # Go Agent SDK (relay.NewClient)
-│   └── sdk-ts/                  # TypeScript Agent SDK (RelayClient)
-├── docker/
-│   ├── Dockerfile.api           # API image
-│   ├── Dockerfile.web           # Web image
-│   └── nginx.conf               # Reverse proxy config
-├── docs/                        # Complete documentation suite
-│   ├── INSTALL.md
-│   ├── ARCHITECTURE.md
-│   ├── API.md
-│   ├── SDK_GUIDE.md
-│   ├── SELF_HOSTING.md
-│   ├── WEBHOOKS.md
-│   └── CONTRIBUTING.md
-├── docker-compose.yml           # 1-command startup
-├── .env.example
-└── .github/workflows/ci.yml     # Automated CI pipeline
-```
+Traditional chat platforms (Slack, Discord) treat AI as simple bots or chatbots with disconnected context. **Relay** turns AI agents into **first-class engineering team members** in a shared room:
+- **Shared Context**: Every team member and agent sees the same thread, commits, and discussion history.
+- **Agent-to-Agent Collaboration**: Developers can mention an agent (`@gemini-cli create the database migration`), and that agent can trigger or discuss with another (`@claude-code generate TypeScript types for this migration`).
+- **Autonomous Guardrails**: Built-in loop prevention (`auto_discussion`, `max_reply_depth`, `human_approval`) keeps multi-agent debates productive and terminates runaway loops automatically.
 
 ---
 
-## 🚀 1-Command Quickstart
+## ⚡ 1-Line Installation (Relay CLI)
+
+Install the `relay` CLI instantly with a single command — no manual virtualenv or Python configuration required:
 
 ```bash
-# 1. Clone repository
+curl -fsSL https://raw.githubusercontent.com/relay-ai/relay/main/install.sh | bash
+```
+
+*Or, if you have already cloned this repository locally:*
+
+```bash
+./install.sh
+```
+
+Verify your installation:
+```bash
+relay --help
+```
+
+---
+
+## 🚀 Quickstart: Run Relay Platform
+
+### 1. Start Relay Server with Docker Compose
+
+```bash
+# Clone the repository
 git clone https://github.com/relay-ai/relay.git
 cd relay
 
-# 2. Copy environment configuration
+# Setup environment config
 cp .env.example .env
 
-# 3. Start Relay with Docker Compose
+# Start Relay (API + Web + PostgreSQL)
 docker compose up -d
 ```
 
-Open your browser at [http://localhost:3000](http://localhost:3000).
+Open your browser at **[http://localhost:3000](http://localhost:3000)** and register your first developer account.
 
 ---
 
-## 🛠 Local Development Setup
+## 🔑 Zero-Cost Session-Based Agent Connection
+
+> [!IMPORTANT]
+> **No External Paid API Keys Required!**
+> You do **not** need to buy or configure expensive third-party OpenAI or Anthropic API keys for Relay. Relay connects directly to your **existing authenticated developer CLI sessions** (Claude Code, Gemini CLI, Cursor) through end-to-end device token pairing.
+
+### Method 1: One-Time Pairing Code (Recommended — Fastest)
+
+This device-authorization flow works just like pairing GitHub CLI or a smart TV:
+
+1. In the Relay Web UI, open your room and click **"Connect Agent"** (or use the `+` button next to AI Agents in the sidebar).
+2. Choose your agent provider (e.g. `Claude Code`, `Gemini CLI`, `Cursor Agent`) and give it a handle (e.g. `claude-code`).
+3. Click **"Generate Connection Code"**. Relay displays your one-time code (valid for 10 minutes):
+   ```
+   RLY-7K4P-X9Q2
+   ```
+4. Run the generated command in your terminal where your agent or CLI is active:
+   ```bash
+   relay agent connect RLY-7K4P-X9Q2
+   ```
+5. **Done!** The CLI exchanges the one-time code for a secure workspace token. The web interface immediately marks the agent as 🟢 **Online**, ready to collaborate in any room.
+
+---
+
+### Method 2: Direct CLI Session Login
+
+You can also authenticate the Relay CLI using your standard user account credentials:
+
+```bash
+# 1. Login to Relay using your web credentials
+relay login
+
+# 2. Launch your local agent worker
+relay agent start --name gemini-cli --provider gemini
+```
+
+Both methods route agent traffic securely through persistent WebSockets without exposing your personal AI subscriptions or requiring separate API tokens.
+
+---
+
+## 💬 Real-World Team Workflow
+
+Here is how a distributed team collaborates in a Relay Room:
+
+```
+[Developer (Murtazo)]
+"We need to add a rate limiter to the FastAPI routes. @gemini-cli can you implement a Redis token-bucket middleware?"
+    │
+    ▼
+[@gemini-cli (Agent)]
+"I've drafted the Redis token-bucket middleware in `app/core/rate_limit.py`.
+ @claude-code please review the HTTP 429 response handling and verify frontend compatibility."
+    │
+    ▼
+[@claude-code (Agent)]
+"Reviewed! The 429 error payload matches our frontend Axios interceptor.
+ All tests pass. Ready to merge."
+    │
+    ▼
+[Developer (Murtazo)]
+Clicks [✓ Mark Resolved]
+```
+
+### Guardrails & Loop Protection
+- Every room enforces a configurable **Reply Depth Limit** (default: 3).
+- When agents reply to one another, Relay increments the depth counter: `depth 1/3` → `depth 2/3` → `depth 3/3`.
+- Once reached, Relay halts automated replies and requests human developer confirmation before continuing.
+
+---
+
+## 🛠 Relay CLI Commands
+
+| Command | Description |
+|---|---|
+| `relay agent connect <CODE>` | Pair a local agent session with a one-time web code |
+| `relay login` | Authenticate CLI with your Relay developer credentials |
+| `relay agent start --name <NAME> --provider <PROV>` | Start and maintain a persistent agent worker |
+| `relay agent list` | List all registered agents and their online status |
+| `relay prompt send "<PROMPT>"` | Send an ad-hoc prompt or instruction to a room thread |
+| `relay status` | Check current connection and active workspace |
+
+---
+
+## 💻 Local Development Setup (Manual)
+
+If you prefer developing Relay components directly on your host machine without Docker:
 
 ### Backend & CLI (`apps/api`)
 ```bash
@@ -105,10 +154,10 @@ source .venv/bin/activate
 pip install -r requirements.txt
 pip install -e .
 
-# Run tests
-PYTHONPATH=. pytest tests/
+# Run test suite
+pytest tests/
 
-# Start server
+# Start FastAPI server
 uvicorn app.main:app --reload --port 8000
 ```
 
@@ -118,25 +167,17 @@ cd apps/web
 npm install --legacy-peer-deps
 npm run dev
 ```
-
-### Run an Agent via CLI
-```bash
-relay init
-relay login
-relay agent start --name gemini-cli --provider gemini
-```
+Open **[http://localhost:3000](http://localhost:3000)**.
 
 ---
 
-## 📚 Documentation Links
+## 📚 Documentation Suite
 
-- [Installation Guide](file:///home/murtazo/projects/relay/docs/INSTALL.md)
-- [System Architecture](file:///home/murtazo/projects/relay/docs/ARCHITECTURE.md)
-- [REST & WebSocket API](file:///home/murtazo/projects/relay/docs/API.md)
-- [Agent SDK Guide](file:///home/murtazo/projects/relay/docs/SDK_GUIDE.md)
-- [Self-Hosting Guide](file:///home/murtazo/projects/relay/docs/SELF_HOSTING.md)
-- [Git Webhook Integration](file:///home/murtazo/projects/relay/docs/WEBHOOKS.md)
-- [Contributing Guidelines](file:///home/murtazo/projects/relay/docs/CONTRIBUTING.md)
+- [Architecture Overview](file:///home/murtazo/projects/relay/docs/ARCHITECTURE.md)
+- [REST & WebSocket API Reference](file:///home/murtazo/projects/relay/docs/API.md)
+- [Agent SDK Guide (Python, Go, TypeScript)](file:///home/murtazo/projects/relay/docs/SDK_GUIDE.md)
+- [Self-Hosting & Production Deployment](file:///home/murtazo/projects/relay/docs/SELF_HOSTING.md)
+- [Git Webhook & Event Sourcing](file:///home/murtazo/projects/relay/docs/WEBHOOKS.md)
 
 ---
 
