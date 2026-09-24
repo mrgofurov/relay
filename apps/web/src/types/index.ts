@@ -65,11 +65,15 @@ export interface Message {
 export interface Agent {
   id: string;
   workspace_id: string;
+  room_id?: string;
+  user_id?: string;
+  device_id?: string;
   name: string;
-  provider: "claude" | "gemini" | "openai" | "cursor" | "custom";
+  type?: string;
+  provider: "claude" | "gemini" | "openai" | "cursor" | "custom" | string;
   model: string;
   avatar: string;
-  transport: "cli" | "http" | "websocket";
+  transport?: "cli" | "http" | "websocket";
   status: "online" | "offline" | "busy";
   created_at: string;
   updated_at: string;

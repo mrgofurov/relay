@@ -94,17 +94,8 @@ export default function Home() {
         }
         setProjects(projs);
 
-        // Load agents, auto-provision default team agents if empty
-        let ags = await api.getAgents(ws.id);
-        if (ags.length === 0) {
-          try {
-            await api.registerAgent(ws.id, "claude-code", "claude", "claude-3-5-sonnet");
-            await api.registerAgent(ws.id, "gemini-cli", "gemini", "gemini-1.5-pro");
-            ags = await api.getAgents(ws.id);
-          } catch (err) {
-            console.error("Agent seed error:", err);
-          }
-        }
+        // Load agents
+        const ags = await api.getAgents(ws.id);
         setAgents(ags);
 
         if (projs.length > 0) {

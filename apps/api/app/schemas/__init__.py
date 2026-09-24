@@ -22,7 +22,6 @@ from app.schemas.agent import (
     AgentCreate,
     AgentUpdate,
     AgentResponse,
-    AgentRegisteredResponse,
     AgentHeartbeat,
 )
 from app.schemas.event import EventResponse
@@ -59,7 +58,6 @@ __all__ = [
     "AgentCreate",
     "AgentUpdate",
     "AgentResponse",
-    "AgentRegisteredResponse",
     "AgentHeartbeat",
     "EventResponse",
     "NotificationResponse",

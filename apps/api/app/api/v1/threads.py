@@ -66,6 +66,8 @@ async def create_thread(
     await db.flush()
 
     if req.initial_message:
+        from app.services.mention_service import extract_mentions, process_mentions
+        auto_mentions = extract_mentions(req.initial_message)
         msg = Message(
             thread_id=thread.id,
             room_id=room_id,
@@ -74,12 +76,24 @@ async def create_thread(
             author_name=actor["actor_name"],
             author_type=MessageType.AGENT if actor["actor_type"] == "agent" else MessageType.HUMAN,
             content=req.initial_message,
-            mentions=[],
+            mentions=auto_mentions,
             metadata_payload={},
             reply_depth=0,
         )
         db.add(msg)
         await db.flush()
+
+        await process_mentions(
+            db=db,
+            workspace_id=room.workspace_id,
+            room_id=room.id,
+            thread_id=thread.id,
+            message_id=msg.id,
+            author_id=actor["actor_id"],
+            author_name=actor["actor_name"],
+            content=msg.content,
+            mentions=auto_mentions,
+        )
 
     # Event sourcing
     await record_event(
@@ -184,3 +198,29 @@ async def resolve_thread(
         {"id": thread.id, "status": "resolved"},
     )
     return thread
+
+
+@router.delete("/threads/{thread_id}")
+async def delete_thread(
+    thread_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete a discussion thread and its messages."""
+    thread = await db.get(Thread, thread_id)
+    if not thread:
+        raise HTTPException(status_code=404, detail="Thread not found")
+    await check_workspace_role(thread.workspace_id, current_user, db)
+
+    room_id = thread.room_id
+    await db.delete(thread)
+    await db.commit()
+
+    await manager.broadcast_to_room(
+        room_id,
+        WebSocketEvents.THREAD_UPDATED,
+        {"id": thread_id, "deleted": True},
+    )
+
+    return {"ok": True, "thread_id": thread_id, "deleted": True}
+

@@ -10,6 +10,7 @@ import {
   Radio,
   ShieldAlert,
   Sparkles,
+  Trash2,
   Zap,
 } from "lucide-react";
 import { ComposeBar } from "./ComposeBar";
@@ -195,6 +196,25 @@ export function ConversationView({ onSendMessage, onTyping }: ConversationViewPr
               <span>Resolve</span>
             </button>
           )}
+
+          <button
+            onClick={async () => {
+              if (confirm(`Delete thread "${activeThread.title}" and all its messages?`)) {
+                try {
+                  await api.deleteThread(activeThread.id);
+                  setThreads(threads.filter((t) => t.id !== activeThread.id));
+                  setActiveThread(null);
+                } catch (err: any) {
+                  alert(`Failed to delete thread: ${err.message}`);
+                }
+              }
+            }}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-zinc-400 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 transition-colors text-xs font-medium"
+            title="Delete this thread"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Delete</span>
+          </button>
         </div>
       </header>
 

@@ -113,7 +113,7 @@ async def search_workspace(
             Agent.workspace_id == workspace_id,
             or_(
                 Agent.name.ilike(pattern),
-                Agent.model.ilike(pattern),
+                Agent.type.ilike(pattern),
             ),
         )
         .limit(10)
@@ -123,8 +123,8 @@ async def search_workspace(
             SearchResultItem(
                 id=ag.id,
                 type="agent",
-                title=f"@{ag.name} ({ag.provider.value})",
-                snippet=f"Agent model: {ag.model}, status: {ag.status.value}",
+                title=f"@{ag.name} ({ag.type})",
+                snippet=f"Agent type: {ag.type}, status: {ag.status}",
                 workspace_id=ag.workspace_id,
                 created_at=ag.created_at.isoformat(),
             )

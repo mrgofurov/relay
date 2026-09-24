@@ -13,6 +13,7 @@ import {
   Search,
   Settings,
   Sun,
+  Trash2,
 } from "lucide-react";
 import { useRelayStore } from "../stores/useRelayStore";
 import { useTheme } from "../hooks/useTheme";
@@ -199,7 +200,7 @@ export function Sidebar({ onSelectRoom }: SidebarProps) {
               agents.map((agent) => (
                 <div
                   key={agent.id}
-                  className="flex items-center justify-between px-2 py-1.5 rounded-md hover:bg-relay-hover transition-colors"
+                  className="group flex items-center justify-between px-2 py-1.5 rounded-md hover:bg-relay-hover transition-colors text-xs"
                 >
                   <div className="flex items-center gap-2 truncate">
                     <span
@@ -216,9 +217,29 @@ export function Sidebar({ onSelectRoom }: SidebarProps) {
                       @{agent.name}
                     </span>
                   </div>
-                  <span className="text-[10px] text-relay-muted capitalize flex-shrink-0 font-mono">
-                    {agent.provider}
-                  </span>
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <span className="text-[10px] text-relay-muted capitalize font-mono group-hover:hidden">
+                      {agent.provider}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        if (confirm(`Remove AI agent @${agent.name} from workspace?`)) {
+                          try {
+                            await api.deleteAgent(agent.id);
+                            useRelayStore.getState().setAgents(agents.filter((a) => a.id !== agent.id));
+                          } catch (err: any) {
+                            alert(`Failed to delete agent: ${err.message}`);
+                          }
+                        }
+                      }}
+                      className="hidden group-hover:flex items-center p-1 rounded text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                      title={`Delete @${agent.name}`}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </div>
                 </div>
               ))
             )}

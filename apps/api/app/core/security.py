@@ -52,35 +52,13 @@ def get_password_hash(password: str) -> str:
     return bcrypt.hashpw(pwd_bytes, salt).decode("utf-8")
 
 
-def generate_agent_key() -> str:
-    return f"relay_agent_{secrets.token_urlsafe(32)}"
+def generate_pairing_code() -> str:
+    """Generate an 8-character human-readable pairing code (e.g. AB7K-92QP).
 
-
-def hash_agent_key(key: str) -> str:
-    return hashlib.sha256(key.encode("utf-8")).hexdigest()
-
-
-def generate_connection_code() -> str:
-    """Generate a human-readable one-time connection code: RLY-XXXX-XXXX.
-
-    Uses cryptographically secure random bytes.
-    The plaintext MUST NOT be stored — only the hash.
+    TTL 60 seconds, one-time use, NOT a secret.
     """
-    part1 = secrets.token_hex(2).upper()  # 4 hex chars
-    part2 = secrets.token_hex(2).upper()  # 4 hex chars
-    return f"RLY-{part1}-{part2}"
+    alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+    p1 = "".join(secrets.choice(alphabet) for _ in range(4))
+    p2 = "".join(secrets.choice(alphabet) for _ in range(4))
+    return f"{p1}-{p2}"
 
-
-def hash_connection_code(code: str) -> str:
-    """SHA-256 hash of a connection code for safe storage."""
-    return hashlib.sha256(code.strip().upper().encode("utf-8")).hexdigest()
-
-
-def generate_agent_token() -> str:
-    """Generate a long-lived agent credential token (shown ONCE after device flow)."""
-    return f"rly_agent_{secrets.token_urlsafe(40)}"
-
-
-def hash_agent_token(token: str) -> str:
-    """SHA-256 hash of an agent token for safe storage."""
-    return hashlib.sha256(token.encode("utf-8")).hexdigest()

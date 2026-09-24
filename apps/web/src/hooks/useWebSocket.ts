@@ -68,34 +68,40 @@ export function useWebSocket() {
           const { event: ev, data } = payload;
 
           switch (ev) {
-            case "message.created":
-              if (activeThread && data.thread_id === activeThread.id) {
-                addMessage(data);
+            case "message.created": {
+              const currentThread = useRelayStore.getState().activeThread;
+              if (currentThread && data.thread_id === currentThread.id) {
+                useRelayStore.getState().addMessage(data);
               }
               // Also update thread message count in list
-              setThreads(
-                threads.map((th) =>
+              useRelayStore.setState((state) => ({
+                threads: state.threads.map((th) =>
                   th.id === data.thread_id
                     ? { ...th, message_count: th.message_count + 1, updated_at: new Date().toISOString() }
                     : th
-                )
-              );
+                ),
+              }));
               break;
+            }
 
             case "message.updated":
-              updateMessage(data.id, data.content, data.edited_at);
+              useRelayStore.getState().updateMessage(data.id, data.content, data.edited_at);
               break;
 
-            case "thread.created":
-              if (activeRoom && data.room_id === activeRoom.id) {
-                setThreads([data, ...threads]);
+            case "thread.created": {
+              const currentRoom = useRelayStore.getState().activeRoom;
+              if (currentRoom && data.room_id === currentRoom.id) {
+                useRelayStore.setState((state) => ({
+                  threads: [data, ...state.threads.filter((t) => t.id !== data.id)],
+                }));
               }
               break;
+            }
 
             case "thread.updated":
-              setThreads(
-                threads.map((th) => (th.id === data.id ? { ...th, ...data } : th))
-              );
+              useRelayStore.setState((state) => ({
+                threads: state.threads.map((th) => (th.id === data.id ? { ...th, ...data } : th)),
+              }));
               break;
 
             case "agent.online":

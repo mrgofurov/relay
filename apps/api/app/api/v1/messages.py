@@ -79,8 +79,11 @@ async def create_thread_message(
     provider = req.provider
     model = req.model
     if actor["actor_type"] == "agent" and actor["agent"]:
-        provider = actor["agent"].provider.value
-        model = actor["agent"].model
+        agent_obj = actor["agent"]
+        provider = getattr(agent_obj, "type", None) or getattr(agent_obj, "provider", "gemini")
+        if hasattr(provider, "value"):
+            provider = provider.value
+        model = getattr(agent_obj, "model", "native-cli")
 
     message = Message(
         thread_id=thread_id,

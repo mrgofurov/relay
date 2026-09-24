@@ -35,9 +35,11 @@ async def test_ai_discussion_depth_limit(client: AsyncClient):
         headers=auth_headers,
         json={"name": "gemini-bot", "provider": "gemini"},
     )
-    assert ag_resp.status_code == 200
-    agent_key = ag_resp.json()["api_key"]
-    agent_headers = {"Authorization": f"Bearer {agent_key}"}
+    ag_id = ag_resp.json()["id"]
+    agent_headers = {
+        "Authorization": f"Bearer {login_resp.json()['access_token']}",
+        "X-Agent-ID": ag_id,
+    }
 
     # Create thread with human message
     thread = (await client.post(

@@ -58,8 +58,14 @@ export class ApiClient {
       throw new Error(errorText || `Request failed with status ${res.status}`);
     }
 
-    return res.json();
+    if (res.status === 204) {
+      return {} as T;
+    }
+
+    const text = await res.text();
+    return text ? JSON.parse(text) : ({} as T);
   }
+
 
   // Auth
   async login(email: string, password: string): Promise<{ access_token: string }> {
@@ -135,6 +141,13 @@ export class ApiClient {
     });
   }
 
+  async deleteThread(threadId: string): Promise<void> {
+    return this.request(`/threads/${threadId}`, {
+      method: "DELETE",
+    });
+  }
+
+
   // Messages
   async getMessages(threadId: string): Promise<Message[]> {
     return this.request<Message[]>(`/threads/${threadId}/messages`);
@@ -165,50 +178,42 @@ export class ApiClient {
     return this.request<Agent[]>(`/workspaces/${workspaceId}/agents`);
   }
 
-  async registerAgent(
-    workspaceId: string,
-    name: string,
-    provider: string,
-    model: string = "default"
-  ): Promise<{ agent: Agent; api_key: string }> {
-    return this.request<{ agent: Agent; api_key: string }>(`/workspaces/${workspaceId}/agents`, {
-      method: "POST",
-      body: JSON.stringify({ name, provider, model, transport: "websocket" }),
-    });
-  }
-
-  // Device Authorization Flow (no provider API key required)
-  async createAgentConnection(
+  // Device Pairing Flow (native CLI sessions)
+  async createDevicePairing(
     agentName: string,
-    provider: string,
-    model: string = "unknown"
+    agentType: string,
+    roomId: string
   ): Promise<{
-    connection_id: string;
-    agent_id: string;
-    display_code: string;
-    cli_command: string;
+    code: string;
+    room_id: string;
+    room_name: string;
+    agent_name: string;
+    agent_type: string;
     expires_at: string;
     expires_in_seconds: number;
+    instructions: string[];
   }> {
-    return this.request(`/agent-connections`, {
+    return this.request(`/device-pairings`, {
       method: "POST",
-      body: JSON.stringify({ agent_name: agentName, provider, model }),
+      body: JSON.stringify({ agent_name: agentName, agent_type: agentType, room_id: roomId }),
     });
   }
 
-  async getConnectionStatus(connectionId: string): Promise<{
-    connection_id: string;
-    agent_id: string;
-    agent_name: string;
+  async getPairingStatus(code: string): Promise<{
+    code: string;
     status: "pending" | "connected" | "expired";
+    agent_id?: string;
+    agent_name: string;
+    room_id: string;
     connected_at: string | null;
   }> {
-    return this.request(`/agent-connections/${connectionId}/status`);
+    return this.request(`/device-pairings/${code}/status`);
   }
 
-  async revokeAgentToken(agentId: string): Promise<void> {
-    return this.request(`/agent-connections/${agentId}/revoke`, { method: "DELETE" });
+  async deleteAgent(agentId: string): Promise<void> {
+    return this.request(`/agents/${agentId}`, { method: "DELETE" });
   }
+
 
   // Search
   async search(workspaceId: string, query: string): Promise<any> {

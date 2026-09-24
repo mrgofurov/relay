@@ -37,8 +37,13 @@ async def process_mentions(
         select(Agent).where(Agent.workspace_id == workspace_id)
     )
     agents = agents_res.scalars().all()
-    agent_by_name = {agent.name.lower(): agent for agent in agents}
-    agent_by_provider = {agent.provider.value.lower(): agent for agent in agents}
+    agent_by_tag = {}
+    for agent in agents:
+        agent_by_tag[agent.name.lower()] = agent
+        agent_by_tag[agent.name.lower().replace(" ", "-")] = agent
+        agent_by_tag[agent.name.lower().replace(" ", "_")] = agent
+        if getattr(agent, "type", None):
+            agent_by_tag[agent.type.lower()] = agent
 
     # Get all members in workspace
     members_res = await db.execute(
@@ -55,7 +60,7 @@ async def process_mentions(
         tag = mention.lstrip("@").lower()
 
         # Check if agent was mentioned
-        target_agent = agent_by_name.get(tag) or agent_by_provider.get(tag)
+        target_agent = agent_by_tag.get(tag)
         if target_agent:
             # Do NOT notify an agent about its own message (prevents infinite self-echo loop)
             if target_agent.id == author_id:

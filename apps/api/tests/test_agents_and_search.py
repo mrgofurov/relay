@@ -25,8 +25,8 @@ async def test_agent_registration_and_search(client: AsyncClient):
     )
     assert ag_resp.status_code == 200
     ag_data = ag_resp.json()
-    assert ag_data["agent"]["name"] == "claude-tester"
-    assert "api_key" in ag_data
+    assert ag_data["name"] == "claude-tester"
+    assert "api_key" not in ag_data
 
     # List agents
     ag_list = await client.get(
@@ -45,3 +45,19 @@ async def test_agent_registration_and_search(client: AsyncClient):
     res = search_resp.json()
     assert res["total"] >= 1
     assert any(item["type"] == "agent" for item in res["results"])
+
+    # Delete agent
+    del_resp = await client.delete(
+        f"/api/v1/agents/{ag_data['id']}",
+        headers=auth_headers,
+    )
+    assert del_resp.status_code == 200
+    assert del_resp.json()["ok"] is True
+
+    # Verify agent is gone
+    ag_list_after = await client.get(
+        f"/api/v1/workspaces/{ws['id']}/agents",
+        headers=auth_headers,
+    )
+    assert not any(a["id"] == ag_data["id"] for a in ag_list_after.json())
+

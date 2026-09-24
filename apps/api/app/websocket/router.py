@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 import json
 import logging
 import uuid
@@ -6,8 +7,8 @@ from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
 from sqlalchemy import select
 
 from app.core.database import async_session_factory
-from app.core.security import decode_access_token, hash_agent_key, hash_agent_token
-from app.models.agent import Agent, AgentStatus
+from app.core.security import decode_access_token
+from app.models.agent import Agent
 from app.models.user import User
 from app.websocket.events import WebSocketEvents
 from app.websocket.manager import manager
@@ -21,8 +22,6 @@ router = APIRouter()
 async def websocket_endpoint(
     websocket: WebSocket,
     token: Optional[str] = Query(None),
-    agent_key: Optional[str] = Query(None),
-    agent_token: Optional[str] = Query(None),   # device-flow token (rly_agent_xxx)
     agent_id: Optional[str] = Query(None),
     workspace_id: Optional[str] = Query(None),
 ):
@@ -33,36 +32,7 @@ async def websocket_endpoint(
     actor_type: str = "guest"
 
     async with async_session_factory() as db:
-        # ── Priority 1: device-flow agent token (rly_agent_xxx) ──────────────
-        if agent_token:
-            token_hash = hash_agent_token(agent_token)
-            result = await db.execute(
-                select(Agent).where(Agent.agent_token_hash == token_hash)
-            )
-            agent = result.scalar_one_or_none()
-            if agent:
-                resolved_agent_id = agent.id
-                workspace_id = agent.workspace_id
-                client_name = agent.name
-                actor_type = "agent"
-                agent.status = AgentStatus.ONLINE
-                await db.commit()
-
-        # ── Priority 2: legacy api_key (backward compat) ─────────────────────
-        elif agent_key:
-            hashed = hash_agent_key(agent_key)
-            result = await db.execute(select(Agent).where(Agent.api_key_hash == hashed))
-            agent = result.scalar_one_or_none()
-            if agent:
-                resolved_agent_id = agent.id
-                workspace_id = agent.workspace_id
-                client_name = agent.name
-                actor_type = "agent"
-                agent.status = AgentStatus.ONLINE
-                await db.commit()
-
-        # ── Priority 3: user JWT + optional agent_id (X-Agent-ID pattern) ────
-        elif token:
+        if token:
             payload = decode_access_token(token)
             if payload and "sub" in payload:
                 user_id = payload["sub"]
@@ -75,7 +45,8 @@ async def websocket_endpoint(
                             workspace_id = agent.workspace_id
                             client_name = agent.name
                             actor_type = "agent"
-                            agent.status = AgentStatus.ONLINE
+                            agent.status = "online"
+                            agent.last_seen = datetime.now(timezone.utc)
                             await db.commit()
                     if not resolved_agent_id:
                         client_name = user.full_name
@@ -171,12 +142,12 @@ async def websocket_endpoint(
     finally:
         meta = await manager.disconnect(connection_id)
         if agent_id and workspace_id:
-            # Check if agent has remaining connections
             if not manager.is_agent_online(agent_id):
                 async with async_session_factory() as db:
                     agent = await db.get(Agent, agent_id)
                     if agent:
-                        agent.status = AgentStatus.OFFLINE
+                        agent.status = "offline"
+                        agent.last_seen = datetime.now(timezone.utc)
                         await db.commit()
                 await manager.broadcast_to_workspace(
                     workspace_id,

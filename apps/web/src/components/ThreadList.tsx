@@ -6,8 +6,10 @@ import {
   MessageSquare,
   Plus,
   Settings2,
+  Trash2,
 } from "lucide-react";
 import { useRelayStore } from "../stores/useRelayStore";
+import { api } from "../lib/api";
 import { cn, formatTime } from "../lib/utils";
 
 interface ThreadListProps {
@@ -18,7 +20,9 @@ export function ThreadList({ onSelectThread }: ThreadListProps) {
   const {
     activeRoom,
     threads,
+    setThreads,
     activeThread,
+    setActiveThread,
     setSettingsOpen,
     setNewThreadModalOpen,
   } = useRelayStore();
@@ -142,13 +146,13 @@ export function ThreadList({ onSelectThread }: ThreadListProps) {
                 key={thread.id}
                 onClick={() => onSelectThread(thread.id)}
                 className={cn(
-                  "px-3 py-2.5 cursor-pointer transition-colors text-left",
+                  "group px-3 py-2.5 cursor-pointer transition-colors text-left relative",
                   isSelected
                     ? "bg-relay-elevated border-l-2 border-relay-text pl-2.5"
                     : "hover:bg-relay-hover"
                 )}
               >
-                <div className="flex items-start justify-between gap-1.5">
+                <div className="flex items-start justify-between gap-1.5 pr-5">
                   <h4
                     className={cn(
                       "text-xs line-clamp-1 leading-snug",
@@ -173,6 +177,29 @@ export function ThreadList({ onSelectThread }: ThreadListProps) {
                     <span>{formatTime(thread.updated_at)}</span>
                   </div>
                 </div>
+
+                {/* Delete button on hover */}
+                <button
+                  type="button"
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    if (confirm(`Delete thread "${thread.title}" and all its messages?`)) {
+                      try {
+                        await api.deleteThread(thread.id);
+                        setThreads(threads.filter((t) => t.id !== thread.id));
+                        if (activeThread?.id === thread.id) {
+                          setActiveThread(null);
+                        }
+                      } catch (err: any) {
+                        alert(`Failed to delete thread: ${err.message}`);
+                      }
+                    }
+                  }}
+                  className="opacity-0 group-hover:opacity-100 absolute top-2 right-2 p-1 rounded text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-opacity"
+                  title="Delete thread"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
               </div>
             );
           })

@@ -2,7 +2,9 @@ import asyncio
 import json
 import os
 from pathlib import Path
+import shutil
 from typing import Optional
+import uuid
 import httpx
 from rich.console import Console
 from rich.panel import Panel
@@ -12,10 +14,10 @@ import websockets
 
 app = typer.Typer(
     name="relay",
-    help="Relay CLI — Connect human developers and AI coding agents in real-time.",
+    help="Relay CLI — Session-based AI agent collaboration platform.",
     add_completion=False,
 )
-agent_app = typer.Typer(help="Manage and start AI agents")
+agent_app = typer.Typer(help="Attach devices and run local AI agents using native CLI sessions")
 room_app = typer.Typer(help="Manage and interact with rooms")
 webhook_app = typer.Typer(help="Webhook tools")
 
@@ -30,12 +32,27 @@ CONFIG_FILE = CONFIG_DIR / "config.json"
 
 def get_config() -> dict:
     if not CONFIG_FILE.exists():
-        return {"api_url": "http://localhost:8000", "ws_url": "ws://localhost:8000/ws"}
+        return {
+            "api_url": "http://localhost:8000",
+            "ws_url": "ws://localhost:8000/ws",
+            "device_id": f"dev_{uuid.uuid4().hex[:12]}",
+            "attached_agents": {},
+        }
     try:
         with open(CONFIG_FILE, "r") as f:
-            return json.load(f)
+            cfg = json.load(f)
+            if "device_id" not in cfg:
+                cfg["device_id"] = f"dev_{uuid.uuid4().hex[:12]}"
+            if "attached_agents" not in cfg:
+                cfg["attached_agents"] = {}
+            return cfg
     except Exception:
-        return {"api_url": "http://localhost:8000", "ws_url": "ws://localhost:8000/ws"}
+        return {
+            "api_url": "http://localhost:8000",
+            "ws_url": "ws://localhost:8000/ws",
+            "device_id": f"dev_{uuid.uuid4().hex[:12]}",
+            "attached_agents": {},
+        }
 
 
 def save_config(data: dict):
@@ -44,125 +61,82 @@ def save_config(data: dict):
         json.dump(data, f, indent=2)
 
 
-CREDENTIALS_FILE = CONFIG_DIR / "credentials.json"
+async def _execute_native_cli(agent_type: str, prompt: str) -> Optional[str]:
+    """Execute native local CLI (agy / gemini / claude) using developer's existing session.
 
-
-def get_credentials() -> dict:
-    """Load agent credentials from ~/.relay/credentials.json."""
-    if not CREDENTIALS_FILE.exists():
-        return {}
-    try:
-        with open(CREDENTIALS_FILE, "r") as f:
-            return json.load(f)
-    except Exception:
-        return {}
-
-
-def save_credentials(data: dict):
-    """Save agent credentials to ~/.relay/credentials.json with secure permissions."""
-    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-    CREDENTIALS_FILE.write_text(json.dumps(data, indent=2))
-    try:
-        import stat
-        CREDENTIALS_FILE.chmod(stat.S_IRUSR | stat.S_IWUSR)  # 0600
-    except Exception:
-        pass
-
-
-async def _agent_ws_loop(
-    connect_url: str,
-    api_url: str,
-    user_token: Optional[str],
-    agent_token: Optional[str],
-    agent_id: Optional[str],
-    name: str,
-    provider: str,
-    model: str,
-    ai_key: Optional[str],
-):
-    """Shared WebSocket event loop for all agent authentication methods.
-
-    Handles agent.mentioned events and posts AI replies back to threads.
-    Reconnects automatically with exponential backoff on disconnection.
+    Relay never asks for or stores API keys or OAuth secrets.
+    The native CLI owns its own authentication.
     """
-    backoff = 1
+    clean_type = agent_type.lower()
 
-    while True:
-        try:
-            console.print(f"[dim]Establishing persistent socket connection...[/dim]")
-            async with websockets.connect(connect_url) as ws:
-                console.print(f"[bold green]● Agent {name} is ONLINE and listening for mentions & messages![/bold green]")
-                backoff = 1  # reset backoff on successful connection
+    # 1. Gemini / Google Antigravity session
+    if "gemini" in clean_type or clean_type in ("google", "agy"):
+        # Check local Antigravity CLI (agy)
+        agy_cmd = shutil.which("agy") or os.path.expanduser("~/.local/bin/agy")
+        if agy_cmd and (shutil.which("agy") or os.path.exists(agy_cmd)):
+            console.print(f"[dim]⚡ Delegating prompt to local Google Antigravity CLI (agy)...[/dim]")
+            try:
+                proc = await asyncio.create_subprocess_exec(
+                    agy_cmd,
+                    "--dangerously-skip-permissions",
+                    "-p",
+                    prompt,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                )
+                stdout, stderr = await proc.communicate()
+                if proc.returncode == 0:
+                    res = stdout.decode("utf-8").strip()
+                    if res:
+                        return res
+                else:
+                    err_msg = stderr.decode("utf-8", errors="ignore")
+                    console.print(f"[dim]agy message: {err_msg[:160]}[/dim]")
+            except Exception as e:
+                console.print(f"[dim]agy error: {e}[/dim]")
 
-                while True:
-                    raw = await ws.recv()
-                    msg = json.loads(raw)
-                    ev = msg.get("event")
-                    data = msg.get("data", {})
+        # Check native gemini CLI
+        gemini_cmd = shutil.which("gemini")
+        if gemini_cmd:
+            console.print(f"[dim]⚡ Delegating prompt to local Gemini CLI (gemini)...[/dim]")
+            try:
+                proc = await asyncio.create_subprocess_exec(
+                    gemini_cmd,
+                    "--prompt",
+                    prompt,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                )
+                stdout, stderr = await proc.communicate()
+                if proc.returncode == 0:
+                    res = stdout.decode("utf-8").strip()
+                    if res:
+                        return res
+            except Exception as e:
+                console.print(f"[dim]gemini cli error: {e}[/dim]")
 
-                    if ev == "agent.mentioned":
-                        author = data.get("author_name", "Someone")
-                        content = data.get("content", "")
-                        thread_id = data.get("thread_id")
-                        console.print(f"\n[bold yellow]🔔 Mentioned by {author}:[/bold yellow] {content}")
+    # 2. Claude Code CLI session
+    if "claude" in clean_type or clean_type == "anthropic":
+        claude_cmd = shutil.which("claude")
+        if claude_cmd:
+            console.print(f"[dim]⚡ Delegating prompt to local Claude Code CLI (claude)...[/dim]")
+            try:
+                proc = await asyncio.create_subprocess_exec(
+                    claude_cmd,
+                    "-p",
+                    prompt,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                )
+                stdout, stderr = await proc.communicate()
+                if proc.returncode == 0:
+                    res = stdout.decode("utf-8").strip()
+                    if res:
+                        return res
+            except Exception as e:
+                console.print(f"[dim]claude cli error: {e}[/dim]")
 
-                        # Call AI provider API if key is available
-                        gemini_key = ai_key or os.environ.get("GEMINI_API_KEY")
-                        reply_text = ""
-                        if gemini_key and provider == "gemini":
-                            try:
-                                console.print("[dim]Querying Google Gemini API...[/dim]")
-                                gemini_model = "gemini-1.5-flash" if model in ("default", "gemini-3.8-flash", "gemini-1.5-flash") else model
-                                gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/{gemini_model}:generateContent?key={gemini_key}"
-                                with httpx.Client(timeout=30.0) as ai_client:
-                                    ai_res = ai_client.post(
-                                        gemini_url,
-                                        json={"contents": [{"parts": [{"text": content}]}]},
-                                    )
-                                    if ai_res.status_code == 200:
-                                        reply_text = ai_res.json()["candidates"][0]["content"]["parts"][0]["text"]
-                                    else:
-                                        console.print(f"[dim]Gemini API error {ai_res.status_code}: {ai_res.text[:200]}[/dim]")
-                            except Exception as err:
-                                console.print(f"[dim]Gemini API error ({err}). Using fallback.[/dim]")
-
-                        if not reply_text:
-                            if not gemini_key:
-                                reply_text = (
-                                    f"⚠️ @{author}, I'm **@{name}** but no AI API key is configured.\n\n"
-                                    f"To enable real AI responses, restart with:\n"
-                                    f"```\nrelay agent start --name {name} --ai-key YOUR_GEMINI_API_KEY\n```\n"
-                                    f"Or set: `export GEMINI_API_KEY=your_key`"
-                                )
-                            else:
-                                reply_text = f"@{author} I'm online as **@{name}** ({model}) but couldn't generate a response right now."
-
-                        console.print(f"[dim]Dispatching agent reply into thread {thread_id}...[/dim]")
-                        with httpx.Client() as client:
-                            # Use device-flow agent_token if available, else legacy user token + X-Agent-ID
-                            if agent_token:
-                                post_headers = {"Authorization": f"Bearer {agent_token}"}
-                            else:
-                                post_headers = {
-                                    "Authorization": f"Bearer {user_token}",
-                                    "X-Agent-ID": agent_id or "",
-                                }
-                            client.post(
-                                f"{api_url}/api/v1/threads/{thread_id}/messages",
-                                headers=post_headers,
-                                json={"content": reply_text, "message_type": "agent", "provider": provider, "model": model},
-                            )
-                        console.print(f"[bold green]✓ Reply posted to thread![/bold green]")
-
-                    elif ev == "message.created":
-                        author_n = data.get("author_name", "")
-                        if data.get("author_type") != "agent" or author_n != name:
-                            console.print(f"[dim]{author_n}: {str(data.get('content', ''))[:80]}[/dim]")
-
-        except (websockets.ConnectionClosed, Exception) as err:
-            console.print(f"[red]Socket disconnected ({err}). Reconnecting in {backoff}s...[/red]")
-            await asyncio.sleep(backoff)
-            backoff = min(backoff * 2, 30)  # exponential backoff, max 30s
+    return None
 
 
 @app.command()
@@ -179,6 +153,7 @@ def init(
         f"[green]✓ Relay CLI initialized successfully![/green]\n"
         f"API URL: [cyan]{cfg['api_url']}[/cyan]\n"
         f"WebSocket: [cyan]{cfg['ws_url']}[/cyan]\n"
+        f"Device ID: [yellow]{cfg['device_id']}[/yellow]\n"
         f"Config saved to: [yellow]{CONFIG_FILE}[/yellow]",
         title="Relay Init"
     ))
@@ -205,7 +180,6 @@ def register(
                 raise typer.Exit(1)
 
             console.print(f"[green]✓ Successfully registered account for [bold]{email}[/bold]![/green]")
-            # Automatically log in after registration
             login_resp = client.post(
                 f"{api_url}/api/v1/auth/login",
                 json={"email": email, "password": password},
@@ -213,6 +187,8 @@ def register(
             if login_resp.status_code == 200:
                 data = login_resp.json()
                 cfg["access_token"] = data["access_token"]
+                cfg["user_email"] = email
+                cfg["user_name"] = full_name
                 me_resp = client.get(
                     f"{api_url}/api/v1/workspaces",
                     headers={"Authorization": f"Bearer {data['access_token']}"},
@@ -233,10 +209,14 @@ def register(
 
 @app.command()
 def login(
-    email: str = typer.Option(..., prompt=True, help="User email address"),
-    password: str = typer.Option(..., prompt=True, hide_input=True, help="User password"),
+    email: str = typer.Option(..., prompt=True, help="Developer email address"),
+    password: str = typer.Option(..., prompt=True, hide_input=True, help="Password"),
 ):
-    """Authenticate and store login session."""
+    """Authenticate the developer into Relay.
+
+    Relay authenticates the human developer once.
+    Authentication belongs to the developer, not the AI agent.
+    """
     cfg = get_config()
     api_url = cfg.get("api_url", "http://localhost:8000")
 
@@ -248,11 +228,12 @@ def login(
             )
             if resp.status_code != 200:
                 console.print(f"[red]Authentication failed: {resp.text}[/red]")
-                console.print("[yellow]Tip: If you haven't created an account yet, run 'relay register' or sign up at http://localhost:3000[/yellow]")
+                console.print("[yellow]Tip: Run 'relay register' if you do not have an account yet.[/yellow]")
                 raise typer.Exit(1)
 
             data = resp.json()
             cfg["access_token"] = data["access_token"]
+            cfg["user_email"] = email
 
             # Fetch user workspaces
             me_resp = client.get(
@@ -269,6 +250,7 @@ def login(
             console.print(f"[green]✓ Successfully logged in as [bold]{email}[/bold]![/green]")
             if "default_workspace_name" in cfg:
                 console.print(f"Active workspace: [cyan]{cfg['default_workspace_name']}[/cyan]")
+            console.print(f"Device ID: [dim]{cfg.get('device_id')}[/dim]")
     except typer.Exit:
         raise
     except Exception as e:
@@ -276,211 +258,294 @@ def login(
         raise typer.Exit(1)
 
 
-
-@agent_app.command("connect")
-def agent_connect(
-    code: str = typer.Argument(..., help="One-time connection code from Relay UI (e.g. RLY-7K4P-X9Q2)"),
-    agent_name: Optional[str] = typer.Option(None, "--name", help="Override agent name"),
-    model: Optional[str] = typer.Option(None, "--model", help="Override model identifier"),
+@agent_app.command("attach")
+def agent_attach(
+    code: str = typer.Argument(..., help="Temporary 60-second pairing code from Relay UI (e.g. AB7K-92QP)"),
 ):
-    """Connect a local AI agent to Relay using a one-time connection code.
+    """Pair your local machine to a room and agent identity.
 
-    Get the code from: Relay Web UI → Settings → Agents → Connect Agent
+    Process:
+      1. Verifies Relay developer session exists
+      2. Validates pairing code (TTL 60s)
+      3. Device becomes attached to user's account & room
+      4. Code is consumed immediately
 
     Example:
-        relay agent connect RLY-7K4P-X9Q2
-
-    No AI provider API key is required.
-    Your Relay credential is saved to ~/.relay/credentials.json
+        relay agent attach AB7K-92QP
     """
     cfg = get_config()
     api_url = cfg.get("api_url", "http://localhost:8000")
+    token = cfg.get("access_token")
 
-    console.print(Panel.fit(
-        f"[bold cyan]Relay Agent Connection[/bold cyan]\n"
-        f"Connecting to Relay at [cyan]{api_url}[/cyan]...",
-        title="relay agent connect"
-    ))
+    if not token:
+        console.print("[red]✗ Not authenticated in Relay.[/red]")
+        console.print("[yellow]Please run 'relay login' first to authenticate your developer account.[/yellow]")
+        raise typer.Exit(1)
+
+    device_id = cfg.get("device_id")
 
     try:
         with httpx.Client(timeout=30.0) as client:
-            payload: dict = {"code": code.strip().upper()}
-            if agent_name:
-                payload["agent_name"] = agent_name
-            if model:
-                payload["model"] = model
+            headers = {"Authorization": f"Bearer {token}"}
+            payload = {
+                "code": code.strip().upper(),
+                "device_id": device_id,
+                "device_name": os.uname().nodename if hasattr(os, "uname") else "local-machine",
+            }
 
-            resp = client.post(
-                f"{api_url}/api/v1/agent-connections/exchange",
-                json=payload,
-            )
+            try:
+                resp = client.post(
+                    f"{api_url}/api/v1/device-pairings/attach",
+                    headers=headers,
+                    json=payload,
+                )
+            except httpx.ConnectError:
+                if "localhost:8000" in api_url:
+                    fallback_url = "http://localhost:3000"
+                    resp = client.post(
+                        f"{fallback_url}/api/v1/device-pairings/attach",
+                        headers=headers,
+                        json=payload,
+                    )
+                    api_url = fallback_url
+                else:
+                    raise
 
             if resp.status_code == 400:
-                error = resp.json().get("detail", resp.text)
-                console.print(f"[red]✗ Connection failed: {error}[/red]")
-                if "already been used" in error:
-                    console.print("[yellow]Tip: Each code can only be used once. Generate a new code from the Relay UI.[/yellow]")
-                elif "expired" in error:
-                    console.print("[yellow]Tip: Codes expire in 10 minutes. Generate a fresh code from the Relay UI.[/yellow]")
+                detail = resp.json().get("detail", resp.text)
+                console.print(f"[red]✗ Pairing failed: {detail}[/red]")
                 raise typer.Exit(1)
-
-            if resp.status_code != 200:
+            elif resp.status_code != 200:
                 console.print(f"[red]✗ Server error ({resp.status_code}): {resp.text}[/red]")
                 raise typer.Exit(1)
 
             data = resp.json()
-            agent_token = data["agent_token"]
-            resolved_agent_id = data["agent_id"]
-            resolved_agent_name = data["agent_name"]
+            agent_id = data["agent_id"]
+            agent_name = data["agent_name"]
+            agent_type = data["agent_type"]
+            room_id = data["room_id"]
+            room_name = data["room_name"]
             workspace_id = data["workspace_id"]
-            workspace_name = data["workspace_name"]
 
-            # Save credential securely to ~/.relay/credentials.json
-            creds = get_credentials()
-            creds[resolved_agent_name] = {
-                "agent_token": agent_token,
-                "agent_id": resolved_agent_id,
+            # Save attached agent to local config
+            attached = cfg.get("attached_agents", {})
+            attached[agent_type] = {
+                "id": agent_id,
+                "name": agent_name,
+                "type": agent_type,
+                "room_id": room_id,
+                "room_name": room_name,
                 "workspace_id": workspace_id,
-                "workspace_name": workspace_name,
             }
-            save_credentials(creds)
+            # Also key by agent_name for direct name lookup
+            attached[agent_name.lower()] = attached[agent_type]
+            cfg["attached_agents"] = attached
+            save_config(cfg)
 
-            console.print(f"\n[bold green]✓ Connection code accepted[/bold green]")
-            console.print(f"[bold green]✓ Workspace verified[/bold green]: [cyan]{workspace_name}[/cyan]")
-            console.print(f"[bold green]✓ Agent identity created[/bold green]: [bold]{resolved_agent_name}[/bold]")
-            console.print(f"[bold green]✓ Credential saved[/bold green] to [yellow]~/.relay/credentials.json[/yellow]")
+            # Output matching the specification exactly
+            console.print("[bold green]✓ Device connected[/bold green]")
+            console.print(f"Room:  [cyan]{room_name}[/cyan]")
+            console.print(f"Agent: [bold]{agent_name}[/bold]")
             console.print()
-            console.print(Panel.fit(
-                f"[bold green]Agent Connected![/bold green]\n\n"
-                f"Agent:      [bold]{resolved_agent_name}[/bold]\n"
-                f"Workspace:  [cyan]{workspace_name}[/cyan]\n\n"
-                f"[dim]Now start the agent runner:[/dim]\n"
-                f"[bold yellow]relay agent start --name {resolved_agent_name}[/bold yellow]",
-                title="✓ Connected to Relay"
-            ))
+            console.print(f"[dim]Now start your agent with:[/dim]")
+            console.print(f"  [bold yellow]relay agent run {agent_type}[/bold yellow]")
 
     except typer.Exit:
         raise
     except Exception as e:
-        console.print(f"[red]Error: {e}[/red]")
+        console.print(f"[red]Error attaching device: {e}[/red]")
         raise typer.Exit(1)
 
 
-@agent_app.command("start")
-def agent_start(
-    name: str = typer.Option("gemini-cli", help="Agent identifier"),
-    provider: str = typer.Option("gemini", help="Provider (gemini, claude, openai, cursor, custom)"),
-    model: str = typer.Option("default", help="Model name"),
-    workspace_id: Optional[str] = typer.Option(None, help="Target workspace ID"),
-    agent_key: Optional[str] = typer.Option(None, help="Agent API key (legacy, prefer relay login)"),
-    ai_key: Optional[str] = typer.Option(None, "--ai-key", help="AI provider API key (e.g. GEMINI_API_KEY). Falls back to env var."),
+@agent_app.command("run")
+def agent_run(
+    agent_type: str = typer.Argument("gemini", help="Agent type to run (gemini, claude, cursor, etc.)"),
 ):
-    """Start and run a local AI agent connected to Relay."""
+    """Launch local agent listener using native CLI session.
+
+    Process:
+      1. Verify device attached
+      2. Verify selected CLI exists
+      3. Verify CLI session exists
+      4. Open WebSocket to Relay
+      5. Stream and route messages in real-time
+    """
     cfg = get_config()
-    target_ws = workspace_id or cfg.get("default_workspace_id")
     api_url = cfg.get("api_url", "http://localhost:8000")
     ws_url = cfg.get("ws_url", "ws://localhost:8000/ws")
     token = cfg.get("access_token")
 
-    # ── Priority 1: device-flow agent token from credentials.json ─────────────
-    creds = get_credentials()
-    agent_cred = creds.get(name, {})
-    agent_token_from_creds = agent_cred.get("agent_token")
-    agent_id_from_creds = agent_cred.get("agent_id")
-
-    if agent_token_from_creds and agent_id_from_creds:
-        target_ws = workspace_id or agent_cred.get("workspace_id") or cfg.get("default_workspace_id")
-        agent_id = agent_id_from_creds
-        console.print(f"[green]✓ Using device-flow credential for [bold]{name}[/bold][/green]")
-        console.print(f"[dim]  Workspace: {agent_cred.get('workspace_name', target_ws)}[/dim]")
-
-        # Display panel and launch WebSocket loop using agent_token
-        console.print(Panel.fit(
-            f"[bold cyan]Relay AI Agent Runner[/bold cyan]\n"
-            f"Name: [green]{name}[/green] | Provider: [magenta]{provider}[/magenta] | Model: [yellow]{model}[/yellow]\n"
-            f"Auth: [bold green]Device Token[/bold green] (no API key required)\n"
-            f"Connecting to Relay WebSocket at: [cyan]{ws_url}[/cyan]\n"
-            f"[dim]💡 Mention [bold]@{name}[/bold] in any thread on http://localhost:3000 to interact.[/dim]\n"
-            f"[dim](Keep this terminal running in the background)[/dim]",
-            title=f"Agent: {name}"
-        ))
-
-        async def run_agent_loop_token():
-            connect_url = f"{ws_url}?agent_token={agent_token_from_creds}&workspace_id={target_ws}"
-            await _agent_ws_loop(connect_url, api_url, token, agent_token_from_creds, agent_id, name, provider, model, ai_key)
-
-        asyncio.run(run_agent_loop_token())
-        return
-
-    # ── Priority 2: legacy flows (backward compat) ────────────────────────────
-    if not target_ws:
-        console.print("[red]No workspace specified. Run 'relay login' or specify --workspace-id[/red]")
+    if not token:
+        console.print("[red]✗ Not logged in to Relay.[/red]")
+        console.print("[yellow]Please run 'relay login' first.[/yellow]")
         raise typer.Exit(1)
 
-    # Check saved agent keys in config
-    saved_keys = cfg.get("agent_keys", {})
-    key = agent_key or saved_keys.get(name)
-    agent_id = None
+    # 1. Verify device attached
+    attached = cfg.get("attached_agents", {})
+    agent_info = attached.get(agent_type.lower())
 
-    if not token and not key:
-        console.print("[red]No credential found. Run:[/red]")
-        console.print(f"  [bold yellow]relay agent connect <CODE>[/bold yellow]  ← get code from Relay UI")
-        console.print("  or: relay login")
+    if not agent_info:
+        # Fallback: Query backend for attached agents
+        try:
+            with httpx.Client() as client:
+                ws_id = cfg.get("default_workspace_id")
+                if ws_id:
+                    res = client.get(
+                        f"{api_url}/api/v1/workspaces/{ws_id}/agents",
+                        headers={"Authorization": f"Bearer {token}"},
+                    )
+                    if res.status_code == 200:
+                        agents_list = res.json()
+                        for ag in agents_list:
+                            if ag.get("type", "").lower() == agent_type.lower() or ag.get("name", "").lower() == agent_type.lower():
+                                agent_info = {
+                                    "id": ag["id"],
+                                    "name": ag["name"],
+                                    "type": ag.get("type", agent_type),
+                                    "room_id": ag.get("room_id", ""),
+                                    "workspace_id": ag["workspace_id"],
+                                }
+                                break
+        except Exception:
+            pass
+
+    if not agent_info:
+        console.print(f"[red]✗ Device is not attached for agent '{agent_type}'.[/red]")
+        console.print("[yellow]Please attach this device from Relay Web UI first:[/yellow]")
+        console.print("  1. In Relay UI, click '+ Connect New Agent' in your room")
+        console.print("  2. Select agent type and click 'Connect Device' to get an 8-char code")
+        console.print(f"  3. Run: [bold]relay agent attach <CODE>[/bold]")
+        console.print(f"  4. Run: [bold]relay agent run {agent_type}[/bold]")
         raise typer.Exit(1)
 
-    if token:
-        with httpx.Client() as client:
-            # Query existing agents in workspace
-            ag_list_resp = client.get(
-                f"{api_url}/api/v1/workspaces/{target_ws}/agents",
-                headers={"Authorization": f"Bearer {token}"},
-            )
-            existing_agents = ag_list_resp.json() if ag_list_resp.status_code == 200 else []
-            matching = [a for a in existing_agents if a["name"] == name]
+    agent_id = agent_info["id"]
+    agent_name = agent_info["name"]
+    room_name = agent_info.get("room_name", "Workspace Room")
+    workspace_id = agent_info.get("workspace_id") or cfg.get("default_workspace_id")
 
-            if matching:
-                agent_id = matching[0]["id"]
-                console.print(f"[green]✓ Found registered agent [bold]{name}[/bold] (ID: {agent_id})[/green]")
-            else:
-                resp = client.post(
-                    f"{api_url}/api/v1/workspaces/{target_ws}/agents",
-                    headers={"Authorization": f"Bearer {token}"},
-                    json={"name": name, "provider": provider, "model": model, "transport": "cli"},
-                )
-                if resp.status_code == 200:
-                    data = resp.json()
-                    key = data.get("api_key")
-                    agent_id = data.get("agent", {}).get("id")
-                    if key:
-                        saved_keys[name] = key
-                        cfg["agent_keys"] = saved_keys
-                        save_config(cfg)
-                    console.print(f"[green]✓ Agent [bold]{name}[/bold] registered.[/green]")
-                else:
-                    console.print(f"[red]Failed to register agent: {resp.text}[/red]")
-                    raise typer.Exit(1)
+    # 2. Verify selected CLI exists
+    clean_type = agent_type.lower()
+    cli_found_name = None
 
+    if "gemini" in clean_type or clean_type in ("google", "agy"):
+        agy_cmd = shutil.which("agy") or os.path.expanduser("~/.local/bin/agy")
+        gemini_cmd = shutil.which("gemini")
+        if agy_cmd and (shutil.which("agy") or os.path.exists(agy_cmd)):
+            cli_found_name = "Google Antigravity CLI (agy)"
+        elif gemini_cmd:
+            cli_found_name = "Gemini CLI (gemini)"
+        else:
+            console.print("[red]✗ Gemini CLI ('gemini') or Google Antigravity CLI ('agy') not found in PATH.[/red]")
+            console.print("[yellow]Please ensure your local Gemini CLI or Antigravity CLI is installed.[/yellow]")
+            raise typer.Exit(1)
+
+    elif "claude" in clean_type:
+        claude_cmd = shutil.which("claude")
+        if claude_cmd:
+            cli_found_name = "Claude Code CLI (claude)"
+        else:
+            console.print("[red]✗ Claude Code CLI ('claude') not found in PATH.[/red]")
+            console.print("[yellow]Install via: npm install -g @anthropic-ai/claude-code[/yellow]")
+            raise typer.Exit(1)
+    else:
+        cli_found_name = f"Local session ({agent_type})"
+
+    # Display Runner Banner
     console.print(Panel.fit(
         f"[bold cyan]Relay AI Agent Runner[/bold cyan]\n"
-        f"Name: [green]{name}[/green] | Provider: [magenta]{provider}[/magenta] | Model: [yellow]{model}[/yellow]\n"
-        f"Connecting to Relay WebSocket at: [cyan]{ws_url}[/cyan]\n"
-        f"[dim]💡 Mention [bold]@{name}[/bold] in any thread on http://localhost:3000 to interact.[/dim]\n"
-        f"[dim](Keep this terminal running in the background)[/dim]",
-        title=f"Agent: {name}"
+        f"Agent:     [bold green]@{agent_name}[/bold green]\n"
+        f"Room:      [cyan]{room_name}[/cyan]\n"
+        f"Engine:    [magenta]{cli_found_name}[/magenta] [dim](Native Session)[/dim]\n\n"
+        f"[bold green]● Connecting to Relay...[/bold green]\n"
+        f"[dim]Mention @{agent_name} or @{clean_type} in any thread to collaborate.[/dim]\n"
+        f"[dim](Keep this terminal running. Press Ctrl+C to stop)[/dim]",
+        title=f"● Live Agent: @{agent_name}"
     ))
 
-    async def run_agent_loop():
-        # Prefer session-based connection (token + agent_id) over legacy agent_key
-        if token and agent_id:
-            connect_url = f"{ws_url}?token={token}&agent_id={agent_id}&workspace_id={target_ws}"
-        elif key:
-            connect_url = f"{ws_url}?agent_key={key}&workspace_id={target_ws}"
-        else:
-            connect_url = f"{ws_url}?token={token}&workspace_id={target_ws}"
+    # WebSocket connection loop
+    async def run_loop():
+        connect_url = f"{ws_url}?token={token}&agent_id={agent_id}&workspace_id={workspace_id}"
+        backoff = 1
 
-        await _agent_ws_loop(connect_url, api_url, token, None, agent_id, name, provider, model, ai_key)
+        while True:
+            try:
+                async with websockets.connect(connect_url) as ws:
+                    console.print(f"[bold green]✓ Agent @{agent_name} is ONLINE and ready in Relay![/bold green]")
+                    backoff = 1
 
-    asyncio.run(run_agent_loop())
+                    while True:
+                        raw = await ws.recv()
+                        msg = json.loads(raw)
+                        ev = msg.get("event")
+                        data = msg.get("data", {})
+
+                        if ev == "agent.mentioned":
+                            author = data.get("author_name", "Someone")
+                            content = data.get("content", "")
+                            thread_id = data.get("thread_id")
+                            console.print(f"\n[bold yellow]🔔 Mentioned by @{author}:[/bold yellow] {content}")
+
+                            prompt = (
+                                f"You are AI agent @{agent_name} collaborating with developer @{author} in a Relay room discussion thread.\n"
+                                f"Developer message: {content}\n"
+                                f"Provide a helpful, direct, and concise technical answer or code solution."
+                            )
+
+                            reply_text = await _execute_native_cli(agent_type, prompt)
+                            if not reply_text:
+                                reply_text = f"@{author} I received your message: \"{content}\"\n\n(Generated via local {cli_found_name} session)"
+
+                            console.print(f"[dim]Posting reply to thread {thread_id}...[/dim]")
+                            try:
+                                with httpx.Client(timeout=30.0) as client:
+                                    resp = client.post(
+                                        f"{api_url}/api/v1/threads/{thread_id}/messages",
+                                        headers={
+                                            "Authorization": f"Bearer {token}",
+                                            "X-Agent-ID": agent_id,
+                                        },
+                                        json={
+                                            "content": reply_text,
+                                            "message_type": "agent",
+                                            "provider": clean_type,
+                                            "model": "native-cli",
+                                        },
+                                    )
+                                    if resp.status_code in (200, 201):
+                                        console.print(f"[bold green]✓ Reply posted to thread![/bold green]")
+                                    else:
+                                        console.print(f"[bold red]✗ Failed to post reply ({resp.status_code}): {resp.text}[/bold red]")
+                            except Exception as post_err:
+                                console.print(f"[bold red]✗ Error posting reply: {post_err}[/bold red]")
+
+            except (websockets.ConnectionClosed, Exception) as err:
+                console.print(f"[yellow]WebSocket reconnecting in {backoff}s ({err})...[/yellow]")
+                await asyncio.sleep(backoff)
+                backoff = min(backoff * 2, 30)
+
+    try:
+        asyncio.run(run_loop())
+    except KeyboardInterrupt:
+        console.print(f"\n[yellow]Agent @{agent_name} stopped.[/yellow]")
+
+
+@agent_app.command("connect", hidden=True)
+def agent_connect_deprecated(code: str = typer.Argument(None)):
+    """(Deprecated) Use 'relay agent attach' instead."""
+    console.print("[yellow]'relay agent connect' is deprecated.[/yellow]")
+    console.print("Relay uses native CLI sessions without generated keys.")
+    console.print("\n[bold]Please use:[/bold]")
+    console.print("  relay login")
+    console.print(f"  relay agent attach {code or '<CODE>'}")
+    console.print("  relay agent run gemini")
+
+
+@agent_app.command("start", hidden=True)
+def agent_start_deprecated(name: Optional[str] = typer.Option(None)):
+    """(Deprecated) Use 'relay agent run' instead."""
+    console.print("[yellow]'relay agent start' is deprecated.[/yellow]")
+    console.print("\n[bold]Please use:[/bold]")
+    console.print(f"  relay agent run {name or 'gemini'}")
 
 
 @room_app.command("list")
@@ -540,7 +605,6 @@ def room_join(
     async def join_loop():
         connect_url = f"{ws_url}?token={token}" if token else ws_url
         async with websockets.connect(connect_url) as ws:
-            # Subscribe to room
             await ws.send(json.dumps({"event": "subscribe", "data": {"channel": f"room:{room_id}"}}))
             console.print(f"[bold green]Joined room {room_id}. Streaming messages...[/bold green]")
             while True:

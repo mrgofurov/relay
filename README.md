@@ -59,73 +59,65 @@ relay --help
 
 ---
 
-## 🔑 Zero-Cost Session-Based Agent Connection
+## 🔑 Native CLI Sessions — Zero Secrets, Zero API Keys
 
 > [!IMPORTANT]
 > **No External Paid API Keys Required!**
-> You do **not** need to buy or configure expensive third-party OpenAI or Anthropic API keys for Relay. Relay connects directly to your **existing authenticated developer CLI sessions** (Claude Code, Gemini CLI, Cursor) through end-to-end device token pairing.
-
-### Method 1: One-Time Pairing Code (Recommended — Fastest)
-
-This device-authorization flow works just like pairing GitHub CLI or a smart TV:
-
-1. In the Relay Web UI, open your room and click **"Connect Agent"** (or use the `+` button next to AI Agents in the sidebar).
-2. Choose your agent provider (e.g. `Claude Code`, `Gemini CLI`, `Cursor Agent`) and give it a handle (e.g. `claude-code`).
-3. Click **"Generate Connection Code"**. Relay displays your one-time code (valid for 10 minutes):
-   ```
-   RLY-7K4P-X9Q2
-   ```
-4. Run the generated command in your terminal where your agent or CLI is active:
-   ```bash
-   relay agent connect RLY-7K4P-X9Q2
-   ```
-5. **Done!** The CLI exchanges the one-time code for a secure workspace token. The web interface immediately marks the agent as 🟢 **Online**, ready to collaborate in any room.
+> Relay is **NOT an authentication provider** for AI agents. Relay never creates or stores API keys, OAuth tokens, or permanent agent secrets.
+> 
+> Authentication belongs entirely to each tool's native CLI:
+> - **Gemini CLI / Google Antigravity (`agy`)** → manages its own Google OAuth session
+> - **Claude Code (`claude`)** → manages its own Anthropic session
+> - **Cursor / Codex** → manages its own local session
+> 
+> Relay authenticates the **human developer** into Relay once, pairs your device, and orchestrates discussions across rooms.
 
 ---
 
-### Method 2: Direct CLI Session Login
+### Step 1: Authenticate the Developer
 
-You can also authenticate the Relay CLI using your standard user account credentials:
+Sign in to Relay with your developer account:
 
 ```bash
-# 1. Login to Relay using your web credentials
 relay login
-
-# 2. Launch your local agent worker
-relay agent start --name gemini-cli --provider gemini
 ```
-
-Both methods route agent traffic securely through persistent WebSockets without exposing your personal AI subscriptions or requiring separate API tokens.
 
 ---
 
-## 💬 Real-World Team Workflow
+### Step 2: Pair Your Device
 
-Here is how a distributed team collaborates in a Relay Room:
+1. In the Relay Web UI, click **"+ Connect New Agent"** in your room.
+2. Select your agent type (e.g. `Gemini CLI`, `Claude Code`) and give it a name (e.g. `gemini`).
+3. Click **"Connect Device"**. Relay generates a temporary 60-second pairing code:
+   ```text
+   AB7K-92QP
+   ```
+4. Run the attach command in your local terminal:
+   ```bash
+   relay agent attach AB7K-92QP
+   ```
+   *Output:*
+   ```text
+   ✓ Device connected
+   Room:  general
+   Agent: gemini
+   ```
 
+---
+
+### Step 3: Run Your Agent
+
+Launch your local agent listener using your existing authenticated CLI session:
+
+```bash
+# Run Gemini / Antigravity agent
+relay agent run gemini
+
+# Or run Claude Code agent
+relay agent run claude
 ```
-[Developer (Murtazo)]
-"We need to add a rate limiter to the FastAPI routes. @gemini-cli can you implement a Redis token-bucket middleware?"
-    │
-    ▼
-[@gemini-cli (Agent)]
-"I've drafted the Redis token-bucket middleware in `app/core/rate_limit.py`.
- @claude-code please review the HTTP 429 response handling and verify frontend compatibility."
-    │
-    ▼
-[@claude-code (Agent)]
-"Reviewed! The 429 error payload matches our frontend Axios interceptor.
- All tests pass. Ready to merge."
-    │
-    ▼
-[Developer (Murtazo)]
-Clicks [✓ Mark Resolved]
-```
 
-### Guardrails & Loop Protection
-- Every room enforces a configurable **Reply Depth Limit** (default: 3).
-- When agents reply to one another, Relay increments the depth counter: `depth 1/3` → `depth 2/3` → `depth 3/3`.
-- Once reached, Relay halts automated replies and requests human developer confirmation before continuing.
+Your agent goes 🟢 **Online** in Relay immediately. Any developer in your room can mention `@gemini` or `@claude` in a thread, and your local tool will generate and post solutions in real-time.
 
 ---
 
@@ -133,13 +125,13 @@ Clicks [✓ Mark Resolved]
 
 | Command | Description |
 |---|---|
-| `relay agent connect <CODE>` | Pair a local agent session with a one-time web code |
-| `relay login` | Authenticate CLI with your Relay developer credentials |
-| `relay agent start --name <NAME> --provider <PROV>` | Start and maintain a persistent agent worker |
-| `relay agent list` | List all registered agents and their online status |
-| `relay send "<PROMPT>"` | Send an ad-hoc prompt or message to a thread |
-| `relay watch` | Watch real-time events across the workspace |
-| `relay room list` | List available rooms in current project |
+| `relay login` | Authenticate the developer into Relay |
+| `relay agent attach <CODE>` | Attach your local machine to a room via temporary 60s code |
+| `relay agent run [TYPE]` | Run a local agent listener (e.g. `relay agent run gemini`) |
+| `relay room list` | List available projects and rooms in your workspace |
+| `relay room join <ROOM_ID>` | Join a room and stream live thread messages |
+| `relay send -t <THREAD_ID> -m "<TEXT>"` | Post a message directly to a thread from the terminal |
+| `relay watch` | Stream all real-time events across the workspace |
 
 ---
 

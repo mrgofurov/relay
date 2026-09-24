@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.security import decode_access_token, hash_agent_key
+from app.core.security import decode_access_token
 from app.models.agent import Agent
 from app.models.user import User
 from app.models.workspace import Membership, WorkspaceRole
@@ -70,22 +70,14 @@ async def get_current_actor(
                 res_agent = await db.execute(agent_query)
                 agent = res_agent.scalar_one_or_none()
                 if agent:
-                    # Verify user belongs to the workspace containing this agent
-                    res_m = await db.execute(
-                        select(Membership).where(
-                            Membership.workspace_id == agent.workspace_id,
-                            Membership.user_id == user.id,
-                        )
-                    )
-                    if res_m.scalar_one_or_none():
-                        return {
-                            "actor_id": agent.id,
-                            "actor_name": agent.name,
-                            "actor_type": "agent",
-                            "user": user,
-                            "agent": agent,
-                            "workspace_id": agent.workspace_id,
-                        }
+                    return {
+                        "actor_id": agent.id,
+                        "actor_name": agent.name,
+                        "actor_type": "agent",
+                        "user": user,
+                        "agent": agent,
+                        "workspace_id": agent.workspace_id,
+                    }
 
             return {
                 "actor_id": user.id,
@@ -95,20 +87,6 @@ async def get_current_actor(
                 "agent": None,
                 "workspace_id": None,
             }
-
-    # 2. Try matching as Agent API Key
-    hashed = hash_agent_key(token)
-    res = await db.execute(select(Agent).where(Agent.api_key_hash == hashed))
-    agent = res.scalar_one_or_none()
-    if agent:
-        return {
-            "actor_id": agent.id,
-            "actor_name": agent.name,
-            "actor_type": "agent",
-            "user": None,
-            "agent": agent,
-            "workspace_id": agent.workspace_id,
-        }
 
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
